@@ -26,6 +26,7 @@ describe('NEON NodeJS Interface:', () => {
       'bls_public_key_to_bbs_key',
       'bbs_sign',
       'bbs_verify',
+      'bbs_create_proof',
     ])
   })
 
@@ -38,6 +39,7 @@ describe('NEON NodeJS Interface:', () => {
     expect(typeof bbs.bls_public_key_to_bbs_key).toBe('function')
     expect(typeof bbs.bbs_sign).toBe('function')
     expect(typeof bbs.bbs_verify).toBe('function')
+    expect(typeof bbs.bbs_create_proof).toBe('function')
   })
 
   describe('Functions', () => {
@@ -264,6 +266,38 @@ describe('NEON NodeJS Interface:', () => {
 
           expect(verified).toBe(false)
         })
+
+      })
+
+    })
+
+    describe('bbs_create_proof()', () => {
+      let blsKey, bbsPublicKey, signature
+
+      beforeAll(() => {
+        blsKey = bbs.bls_generate_blinded_g2_key(seed)
+        bbsPublicKey = bbs.bls_secret_key_to_bbs_key({ messageCount: messages.length, secretKey: blsKey.secretKey })
+        signature = bbs.bbs_sign({ secretKey: blsKey.secretKey, publicKey: bbsPublicKey, messages })
+      })
+
+      describe('should generate proof of the correct length', () => {
+
+        it('where 1 message revealed', () => {
+          const proof = bbs.bbs_create_proof({ signature, publicKey: bbsPublicKey, messages, revealed: [ 1 ], nonce })
+
+          expect(Buffer.from(proof).length).toBe(447)
+        })
+
+        it('where 3 messages revealed', () => {
+          const proof = bbs.bbs_create_proof({ signature, publicKey: bbsPublicKey, messages, revealed: [ 0, 1, 2 ], nonce })
+
+          expect(Buffer.from(proof).length).toBe(383)
+        })
+
+
+      })
+
+    })
 
       })
 
