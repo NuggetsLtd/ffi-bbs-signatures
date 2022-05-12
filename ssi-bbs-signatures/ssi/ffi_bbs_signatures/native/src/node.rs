@@ -108,11 +108,46 @@ fn node_bls_secret_key_to_bbs_key(mut cx: FunctionContext) -> JsResult<JsArrayBu
   Ok(slice_to_js_array_buffer!(&pk_bytes, cx))
 }
 
+/// Get the BBS public key associated with the public key
+/// /// the context object model is as follows:
+/// {
+///     "publicKey": ArrayBuffer           // the public key of signer
+///     "messageCount": Number,            // the number of messages that can be signed
+/// }
+/// `return`: `publicKey` `ArrayBuffer`
+fn node_bls_public_key_to_bbs_key(mut cx: FunctionContext) -> JsResult<JsArrayBuffer> {
+  let bad_res = cx.array_buffer(0);
+  let js_obj = cx.argument::<JsObject>(0)?;
+
+  let message_count = obj_property_to_unsigned_int!(&mut cx, js_obj, "messageCount");
+
+  let dpk_bytes = obj_property_to_slice!(&mut cx, js_obj, "publicKey");
+  let dpk = DeterministicPublicKey::from(*array_ref![
+    dpk_bytes,
+    0,
+    DETERMINISTIC_PUBLIC_KEY_COMPRESSED_SIZE
+  ]);
+
+  let pk;
+  match dpk.to_public_key(message_count as usize) {
+      Err(_) => return bad_res,
+      Ok(p) => pk = p,
+  }
+  if pk.validate().is_err() {
+      return bad_res;
+  }
+
+  let pk_bytes = pk.to_bytes_compressed_form();
+
+  Ok(slice_to_js_array_buffer!(&pk_bytes, cx))
+}
+
 register_module!(mut cx, {
   cx.export_function("bls_generate_blinded_g1_key", node_bls_generate_blinded_g1_key)?;
   cx.export_function("bls_generate_blinded_g2_key", node_bls_generate_blinded_g2_key)?;
   cx.export_function("bls_generate_g1_key", node_bls_generate_g1_key)?;
   cx.export_function("bls_generate_g2_key", node_bls_generate_g2_key)?;
   cx.export_function("bls_secret_key_to_bbs_key", node_bls_secret_key_to_bbs_key)?;
+  cx.export_function("bls_public_key_to_bbs_key", node_bls_public_key_to_bbs_key)?;
   Ok(())
 });
