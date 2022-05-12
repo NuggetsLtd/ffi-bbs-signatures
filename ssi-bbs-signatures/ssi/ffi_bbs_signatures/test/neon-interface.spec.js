@@ -25,6 +25,7 @@ describe('NEON NodeJS Interface:', () => {
       'bls_secret_key_to_bbs_key',
       'bls_public_key_to_bbs_key',
       'bbs_sign',
+      'bbs_verify',
     ])
   })
 
@@ -36,6 +37,7 @@ describe('NEON NodeJS Interface:', () => {
     expect(typeof bbs.bls_secret_key_to_bbs_key).toBe('function')
     expect(typeof bbs.bls_public_key_to_bbs_key).toBe('function')
     expect(typeof bbs.bbs_sign).toBe('function')
+    expect(typeof bbs.bbs_verify).toBe('function')
   })
 
   describe('Functions', () => {
@@ -188,6 +190,81 @@ describe('NEON NodeJS Interface:', () => {
 
         expect(() => bbs.bbs_sign({ secretKey: blsKey.secretKey, publicKey: bbsPublicKey, messages }))
           .toThrow(/Public key to message mismatch. Expected 1, found 1/)
+      })
+
+    })
+
+
+    describe('bbs_verify()', () => {
+      let blsKey
+
+      beforeAll(() => {
+        blsKey = bbs.bls_generate_blinded_g2_key(seed)
+      })
+
+      describe('should verify a standard signature', () => {
+
+        it('where 1 message is signed', () => {
+          const bbsPublicKey = bbs.bls_secret_key_to_bbs_key({ messageCount: 1, secretKey: blsKey.secretKey })
+          const signature = bbs.bbs_sign({ secretKey: blsKey.secretKey, publicKey: bbsPublicKey, messages: [ messages[0] ] })
+
+          const verified = bbs.bbs_verify({ signature, publicKey: bbsPublicKey, messages: [ messages[0] ] })
+
+          expect(verified).toBe(true)
+        })
+
+        it('where 3 messages are signed', () => {
+          const bbsPublicKey = bbs.bls_secret_key_to_bbs_key({ messageCount: messages.length, secretKey: blsKey.secretKey })
+          const signature = bbs.bbs_sign({ secretKey: blsKey.secretKey, publicKey: bbsPublicKey, messages })
+
+          const verified = bbs.bbs_verify({ signature, publicKey: bbsPublicKey, messages })
+
+          expect(verified).toBe(true)
+        })
+
+      })
+
+      describe('should fail to verify a signature', () => {
+
+        it('where messages are incorrect', () => {
+          const bbsPublicKey = bbs.bls_secret_key_to_bbs_key({ messageCount: messages.length, secretKey: blsKey.secretKey })
+          const signature = bbs.bbs_sign({ secretKey: blsKey.secretKey, publicKey: bbsPublicKey, messages })
+
+          const verified = bbs.bbs_verify({ signature, publicKey: bbsPublicKey, messages: [ messages[0], messages[0], messages[0] ] })
+
+          expect(verified).toBe(false)
+        })
+
+        it('where public key is incorrect', () => {
+          const bbsPublicKey = bbs.bls_secret_key_to_bbs_key({ messageCount: messages.length, secretKey: blsKey.secretKey })
+
+          const signature = bbs.bbs_sign({ secretKey: blsKey.secretKey, publicKey: bbsPublicKey, messages })
+
+          const randomSeed = base64ToArrayBuffer('JhRwDXovpCVDEhrG/SAsjEaUGbsty2Lu/AdywOHnNPrz7r4phYXvLNmvAHSdosgqbZA=')
+          const randomBlsKey = bbs.bls_generate_blinded_g2_key(randomSeed)
+          const randomBbsPublicKey = bbs.bls_secret_key_to_bbs_key({ messageCount: messages.length, secretKey: randomBlsKey.secretKey })
+
+          const verified = bbs.bbs_verify({ signature, publicKey: randomBbsPublicKey, messages })
+
+          expect(verified).toBe(false)
+        })
+
+        it('where messages are incorrect for unblinded signature', () => {
+          const bbsPublicKey = bbs.bls_secret_key_to_bbs_key({ messageCount: messages.length, secretKey: blsKey.secretKey })
+
+          // 2x blinded message commitment
+          const { commitment, blindingFactor } = bbs.bbs_blind_signature_commitment({ publicKey: bbsPublicKey, messages: [ messages[0], messages[1] ], blinded: [ 0, 1 ], nonce })
+
+          // blind sign with 1 unblinded message
+          const blindSignature = bbs.bbs_blind_sign({ commitment, publicKey: bbsPublicKey, secretKey: blsKey.secretKey, messages: [ messages[2] ], known: [ 2 ] })
+          const unblindedSignature = bbs.bbs_get_unblinded_signature(blindSignature, blindingFactor)
+
+          // verify unblinded signature
+          const verified = bbs.bbs_verify({ signature: unblindedSignature, publicKey: bbsPublicKey, messages: [ messages[0], messages[0], messages[0] ] })
+
+          expect(verified).toBe(false)
+        })
+
       })
 
     })
