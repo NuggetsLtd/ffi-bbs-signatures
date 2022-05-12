@@ -509,6 +509,127 @@ fn bitvector_to_revealed(data: &[u8]) -> BTreeSet<usize> {
     revealed_messages
 }
 
+/// This method should be called by the signature recipient and not the signer.
+///
+/// Creates the commitment and proof to be used in a blinded signature.
+/// First, caller's should extract the blinding factor and use this to unblind
+/// the signature once the other party has generated the signature. Everything
+/// else should be sent to the signer. The signer needs the commitment to finish
+/// the signature and the proof of knowledge of committed values. The blinding
+/// requires the public key and the message indices to be blinded.
+///
+/// `blind_signature_context`: `Object` the context for the blind signature creation
+/// The context object model is as follows:
+/// {
+///     "publicKey": ArrayBuffer                // The public key of signer
+///     "messages": [ArrayBuffer, ArrayBuffer], // The messages that will be blinded as ArrayBuffers. They will be Blake2b hashed
+///     "blinded": [Number, Number],            // The zero based indices to the generators in the public key for the messages.
+///     "nonce": ArrayBuffer                    // This is an optional nonce from the signer and will be used in the proof of committed messages if present. It is strongly recommend that this be used.
+/// }
+///
+/// `return`: `Object` with the following fields
+/// {
+///     "commitment": ArrayBuffer,
+///     "proofOfHiddenMessages": ArrayBuffer,
+///     "challengeHash": ArrayBuffer,
+///     "blindingFactor": ArrayBuffer
+/// }
+///
+/// The caller must make sure that "blinding_factor" is not passed to the signer. This
+/// would allow the issuer to unblind the signature but would still not know the hidden message
+/// values.
+fn node_bbs_blind_signature_commitment(mut cx: FunctionContext) -> JsResult<JsObject> {
+  println!("{}", "bbs_blind_signature_commitment");
+  let bcx = extract_blinding_context(&mut cx)?;
+  let (bcx, bf) =
+      Prover::new_blind_signature_context(&bcx.public_key, &bcx.messages, &bcx.nonce).unwrap();
+  get_blind_commitment(cx, bcx, bf)
+}
+
+fn get_blind_commitment(
+  mut cx: FunctionContext,
+  bcx: BlindSignatureContext,
+  bf: SignatureBlinding,
+) -> JsResult<JsObject> {
+  let commitment = slice_to_js_array_buffer!(&bcx.commitment.to_bytes_compressed_form()[..], cx);
+  let challenge_hash =
+      slice_to_js_array_buffer!(&bcx.challenge_hash.to_bytes_compressed_form()[..], cx);
+  let blinding_factor = slice_to_js_array_buffer!(&bf.to_bytes_compressed_form()[..], cx);
+  let proof = slice_to_js_array_buffer!(
+      bcx.proof_of_hidden_messages
+          .to_bytes_compressed_form()
+          .as_slice(),
+      cx
+  );
+
+  let result = JsObject::new(&mut cx);
+  result.set(&mut cx, "commitment", commitment)?;
+  result.set(&mut cx, "challengeHash", challenge_hash)?;
+  result.set(&mut cx, "blindingFactor", blinding_factor)?;
+  result.set(&mut cx, "proofOfHiddenMessages", proof)?;
+  Ok(result)
+}
+
+fn extract_blinding_context(cx: &mut FunctionContext) -> Result<BlindingContext, Throw> {
+  let js_obj = cx.argument::<JsObject>(0)?;
+
+  let pk_bytes = obj_property_to_slice!(cx, js_obj, "publicKey");
+  let public_key = PublicKey::from_bytes_compressed_form(pk_bytes.as_slice()).unwrap();
+
+  if public_key.validate().is_err() {
+      panic!("Invalid key");
+  }
+  let nonce = obj_property_to_opt_slice!(cx, js_obj, "nonce");
+
+  let hidden = obj_property_to_vec!(cx, js_obj, "blinded");
+  let message_bytes = obj_property_to_vec!(cx, js_obj, "messages");
+
+  if hidden.len() != message_bytes.len() {
+      panic!(
+          "hidden length is not the same as messages: {} != {}",
+          hidden.len(),
+          message_bytes.len()
+      );
+  }
+
+  let mut messages = BTreeMap::new();
+  let message_count = public_key.message_count() as f64;
+
+  for i in 0..hidden.len() {
+      let index = cast_to_number!(cx, hidden[i]);
+      if index < 0f64 || index > message_count {
+          panic!(
+              "Index is out of bounds. Must be between {} and {}: found {}",
+              0,
+              public_key.message_count(),
+              index
+          );
+      }
+
+      let message = js_array_buffer_to_slice!(cx, message_bytes[i]);
+      messages.insert(index as usize, SignatureMessage::hash(message));
+  }
+
+  let nonce = ProofNonce::hash(
+      &(nonce.map_or_else(
+          || b"bbs+nodejswrapper".to_vec(),
+          |m| m,
+      )),
+  );
+
+  Ok(BlindingContext {
+      public_key,
+      messages,
+      nonce,
+  })
+}
+
+struct BlindingContext {
+  public_key: PublicKey,
+  messages: BTreeMap<usize, SignatureMessage>,
+  nonce: ProofNonce,
+}
+
 register_module!(mut cx, {
   cx.export_function("bls_generate_blinded_g1_key", node_bls_generate_blinded_g1_key)?;
   cx.export_function("bls_generate_blinded_g2_key", node_bls_generate_blinded_g2_key)?;
@@ -521,5 +642,9 @@ register_module!(mut cx, {
   cx.export_function("bbs_create_proof", node_bbs_create_proof)?;
   cx.export_function("bbs_verify_proof", node_bbs_verify_proof)?;
   cx.export_function("bls_verify_proof", node_bls_verify_proof)?;
+  cx.export_function(
+      "bbs_blind_signature_commitment",
+      node_bbs_blind_signature_commitment,
+  )?;
   Ok(())
 });
