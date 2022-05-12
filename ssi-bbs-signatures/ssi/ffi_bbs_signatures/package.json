@@ -12,6 +12,18 @@
     "Andrew Lord (andrew.lord@nuggets.life)"
   ],
   "license": "GPL-3.0-or-later",
+  "dependencies": {
+    "neon-cli": "^0.10.0"
+  },
+  "scripts": {
+    "build": "neon build",
+    "build:neon": "CARGO_CFG_FEATURE='node' yarn build",
+    "build:android": "CARGO_CFG_TARGET_OS='android' yarn build",
+    "build:java": "CARGO_CFG_FEATURE='java' yarn build",
+    "test:neon": "jest --config jest.config.json",
+    "lint:node": "eslint . --ignore-path .gitignore",
+    "clean": "neon clean"
+  },
   "devDependencies": {
     "@appliedblockchain/eslint-config": "^3.0.0",
     "eslint": "^7.32.0",

@@ -1,0 +1,28 @@
+[package]
+name = "neon-test"
+version = "0.1.0"
+authors = ["Andrew Lord <andrew.lord@nuggets.life>"]
+license = "MIT"
+build = "build.rs"
+edition = "2018"
+exclude = ["artifacts.json", "index.node"]
+
+[lib]
+name = "neon_test"
+crate-type = ["cdylib"]
+
+[build-dependencies]
+neon-build = "0.10.0"
+
+[dependencies]
+neon = "0.10.0"
+arrayref = "0.3"
+bbs = "0.4"
+ffi-support = "0.4"
+hkdf = "0.8"
+jni = { version = "0.10", optional = true }
+lazy_static = "1.4"
+pairing-plus = "0.19"
+rand = "0.7"
+serde = { version = "1.0", features = ["serde_derive"] }
+sha2 = "0.8"
