@@ -27,6 +27,8 @@ describe('NEON NodeJS Interface:', () => {
       'bbs_sign',
       'bbs_verify',
       'bbs_create_proof',
+      'bbs_verify_proof',
+      'bls_verify_proof',
     ])
   })
 
@@ -40,6 +42,8 @@ describe('NEON NodeJS Interface:', () => {
     expect(typeof bbs.bbs_sign).toBe('function')
     expect(typeof bbs.bbs_verify).toBe('function')
     expect(typeof bbs.bbs_create_proof).toBe('function')
+    expect(typeof bbs.bbs_verify_proof).toBe('function')
+    expect(typeof bbs.bls_verify_proof).toBe('function')
   })
 
   describe('Functions', () => {
@@ -296,6 +300,58 @@ describe('NEON NodeJS Interface:', () => {
 
 
       })
+
+    })
+
+    describe('bbs_verify_proof()', () => {
+      let blsKey, bbsPublicKey, signature
+
+      beforeAll(() => {
+        blsKey = bbs.bls_generate_blinded_g2_key(seed)
+        bbsPublicKey = bbs.bls_secret_key_to_bbs_key({ messageCount: messages.length, secretKey: blsKey.secretKey })
+        signature = bbs.bbs_sign({ secretKey: blsKey.secretKey, publicKey: bbsPublicKey, messages })
+      })
+
+      describe('should verify a proof', () => {
+
+        it('where 1 message revealed', () => {
+          const proof = bbs.bbs_create_proof({ signature, publicKey: bbsPublicKey, messages, revealed: [ 1 ], nonce })
+
+          const verified = bbs.bbs_verify_proof({ proof, publicKey: bbsPublicKey, messages: [ messages[1] ], nonce })
+
+          expect(verified).toBe(true)
+        })
+
+        it('where 3 messages revealed', () => {
+          const proof = bbs.bbs_create_proof({ signature, publicKey: bbsPublicKey, messages, revealed: [ 0, 1, 2 ], nonce })
+
+          const verified = bbs.bbs_verify_proof({ proof, publicKey: bbsPublicKey, messages, nonce })
+
+          expect(verified).toBe(true)
+        })
+
+
+      })
+
+      describe('should fail to verify a proof', () => {
+
+        it('where messages are incorrect', () => {
+          const proof = bbs.bbs_create_proof({ signature, publicKey: bbsPublicKey, messages, revealed: [ 0, 1, 2 ], nonce })
+
+          expect(() => bbs.bbs_verify_proof({ proof, publicKey: bbsPublicKey, messages: [ messages[0], messages[0], messages[0] ], nonce }))
+            .toThrow(/The proof failed due to a revealed message was supplied that was not signed or a message was revealed that was initially hidden/)
+        })
+
+        it('where messages public key is incorrect', () => {
+          const proof = bbs.bbs_create_proof({ signature, publicKey: bbsPublicKey, messages, revealed: [ 0, 1, 2 ], nonce })
+
+          const randomSeed = base64ToArrayBuffer('JhRwDXovpCVDEhrG/SAsjEaUGbsty2Lu/AdywOHnNPrz7r4phYXvLNmvAHSdosgqbZA=')
+          const randomBlsKey = bbs.bls_generate_blinded_g2_key(randomSeed)
+          const randomBbsPublicKey = bbs.bls_secret_key_to_bbs_key({ messageCount: messages.length, secretKey: randomBlsKey.secretKey })
+
+          expect(() => bbs.bbs_verify_proof({ proof, publicKey: randomBbsPublicKey, messages, nonce }))
+            .toThrow(/The proof failed due to An invalid signature was supplied/)
+        })
 
     })
 
