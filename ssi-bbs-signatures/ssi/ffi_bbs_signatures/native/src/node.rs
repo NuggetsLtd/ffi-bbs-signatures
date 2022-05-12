@@ -188,6 +188,51 @@ fn node_bbs_sign(mut cx: FunctionContext) -> JsResult<JsArrayBuffer> {
   Ok(result)
 }
 
+/// Verify a BBS+ signature
+/// The first argument is the domain separation label
+/// The second argument is the public key `w` created from bls_generate_key
+/// The third argument is the signature to be verified.
+/// The remaining values are the messages that were signed
+///
+/// `signature_context`: `Object` the context for verifying the signature
+/// {
+///     "publicKey": ArrayBuffer                // The public key
+///     "signature": ArrayBuffer                // The signature
+///     "messages": [ArrayBuffer, ArrayBuffer], // The messages that were signed as strings. They will be Blake2b hashed
+/// }
+///
+/// `return`: true if valid `signature` on `messages`
+fn node_bbs_verify(mut cx: FunctionContext) -> JsResult<JsBoolean> {
+  let js_obj = cx.argument::<JsObject>(0)?;
+
+  let signature = Signature::from(obj_property_to_fixed_array!(
+      &mut cx,
+      js_obj,
+      "signature",
+      0,
+      SIGNATURE_COMPRESSED_SIZE
+  ));
+
+  let pk_bytes = obj_property_to_slice!(&mut cx, js_obj, "publicKey");
+  let pk = PublicKey::from_bytes_compressed_form(pk_bytes.as_slice()).unwrap();
+
+  if pk.validate().is_err() {
+      panic!("Invalid key");
+  }
+
+  let message_bytes = obj_property_to_vec!(&mut cx, js_obj, "messages");
+  let mut messages = Vec::new();
+  for i in 0..message_bytes.len() {
+      let message = js_array_buffer_to_slice!(&mut cx, message_bytes[i]);
+      messages.push(SignatureMessage::hash(message));
+  }
+
+  match signature.verify(messages.as_slice(), &pk) {
+      Ok(b) => Ok(cx.boolean(b)),
+      Err(_) => Ok(cx.boolean(false)),
+  }
+}
+
 register_module!(mut cx, {
   cx.export_function("bls_generate_blinded_g1_key", node_bls_generate_blinded_g1_key)?;
   cx.export_function("bls_generate_blinded_g2_key", node_bls_generate_blinded_g2_key)?;
@@ -196,5 +241,6 @@ register_module!(mut cx, {
   cx.export_function("bls_secret_key_to_bbs_key", node_bls_secret_key_to_bbs_key)?;
   cx.export_function("bls_public_key_to_bbs_key", node_bls_public_key_to_bbs_key)?;
   cx.export_function("bbs_sign", node_bbs_sign)?;
+  cx.export_function("bbs_verify", node_bbs_verify)?;
   Ok(())
 });
