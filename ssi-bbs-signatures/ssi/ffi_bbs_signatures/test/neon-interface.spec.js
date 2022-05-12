@@ -21,6 +21,7 @@ describe('NEON NodeJS Interface:', () => {
       'bls_generate_blinded_g1_key',
       'bls_generate_blinded_g2_key',
       'bls_generate_g1_key',
+      'bls_generate_g2_key',
     ])
   })
 
@@ -28,6 +29,7 @@ describe('NEON NodeJS Interface:', () => {
     expect(typeof bbs.bls_generate_blinded_g1_key).toBe('function')
     expect(typeof bbs.bls_generate_blinded_g2_key).toBe('function')
     expect(typeof bbs.bls_generate_g1_key).toBe('function')
+    expect(typeof bbs.bls_generate_g2_key).toBe('function')
   })
 
   describe('Functions', () => {
@@ -88,6 +90,25 @@ describe('NEON NodeJS Interface:', () => {
 
     })
 
+    describe('bls_generate_blinded_g2_key()', () => {
+
+      it('where "seed" is provided', async () => {
+        const blsKey = bbs.bls_generate_blinded_g2_key(seed)
+
+        expect(Buffer.from(blsKey.publicKey).toString('hex')).toBe('9062c81ce87bf8d1cd7fc25662dc4fb6236f103739110e95d1389f1dff6f6c29b8f08c333423b005f513668cf62458601837594c01e0f419f86210079858fb7563de15c24797a1dd5aab4bc49ebfc00cecea2edbaa831cf7c224503492257ae6')
+        expect(Buffer.from(blsKey.secretKey).toString('hex')).toBe('0a6e79d1d1deaa8e48fdd542fdb5c3f6ce42c7cbe7ca157f826eca3b952ebe21')
+        expect(Buffer.from(blsKey.blindingFactor).toString('hex')).toBe('636b9b1314a2877ee6236ffb4d9d57f8a88ac6ee1ce5650e057b0ae87d13703e')
+      })
+
+      it('where "seed" is NOT provided', async () => {
+        const blsKey = bbs.bls_generate_blinded_g2_key()
+
+        expect(Buffer.from(blsKey.publicKey).length).toBe(96)
+        expect(Buffer.from(blsKey.secretKey).length).toBe(32)
+        expect(Buffer.from(blsKey.blindingFactor).length).toBe(32)
+      })
+
+    })
   })
 
 })
