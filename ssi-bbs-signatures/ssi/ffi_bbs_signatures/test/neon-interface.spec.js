@@ -22,6 +22,7 @@ describe('NEON NodeJS Interface:', () => {
       'bls_generate_blinded_g2_key',
       'bls_generate_g1_key',
       'bls_generate_g2_key',
+      'bls_secret_key_to_bbs_key',
     ])
   })
 
@@ -30,6 +31,7 @@ describe('NEON NodeJS Interface:', () => {
     expect(typeof bbs.bls_generate_blinded_g2_key).toBe('function')
     expect(typeof bbs.bls_generate_g1_key).toBe('function')
     expect(typeof bbs.bls_generate_g2_key).toBe('function')
+    expect(typeof bbs.bls_secret_key_to_bbs_key).toBe('function')
   })
 
   describe('Functions', () => {
@@ -109,6 +111,28 @@ describe('NEON NodeJS Interface:', () => {
       })
 
     })
+
+    describe('bls_secret_key_to_bbs_key()', () => {
+      let blsKey
+
+      beforeAll(() => {
+        blsKey = bbs.bls_generate_blinded_g2_key(seed)
+      })
+
+      it('where "messageCount" = 1', () => {
+        const bbsPublicKey = bbs.bls_secret_key_to_bbs_key({ messageCount: 1, secretKey: blsKey.secretKey })
+
+        expect(Buffer.from(bbsPublicKey).toString('hex')).toBe('a50ae8d6eaa9bd43ccdf5b2bfa31df7f3efe2892290379057a7e12a0a013511460a3ba64e7cd9a6aa2314a29d6b201c307d8fd770c5845b0b7ab6666202476395317dc51d6f4b655d9001ab936059fb804adad4149e2a174a0e9cc1c4f8c8dfa8a76e5cbe5214abfd637099582772dc25c4a6871edd33559f92db6de6bd1671bca4a4883d930c31423727a342c85636100000001b9541258be3921882ba181b8fe7eb08d8c6db3d47e21b04f6eae506ee9746826d4597e83c0b95b9fe7bc4495ec3efcbd')
+      })
+
+      it('where "messageCount" = 3', () => {
+        const bbsPublicKey = bbs.bls_secret_key_to_bbs_key({ messageCount: 3, secretKey: blsKey.secretKey })
+
+        expect(Buffer.from(bbsPublicKey).toString('hex')).toBe('a50ae8d6eaa9bd43ccdf5b2bfa31df7f3efe2892290379057a7e12a0a013511460a3ba64e7cd9a6aa2314a29d6b201c307d8fd770c5845b0b7ab6666202476395317dc51d6f4b655d9001ab936059fb804adad4149e2a174a0e9cc1c4f8c8dfaac09fba8a049fb3a098e2483c45881960ca33ca450cf0f11e951d127ad9c50f101531c7c9a4d45a6e0c175e5c0f0da600000000393c8623f78f956458832ca9a06721e6c4e94eec4a2d196c6e4a1efa779d60dcb85f2e0cff66f63ae3b0220e0850c2e198e5609e93673e6a0e3878a6674acdea5d40b3459b0aa3eaf66b1de2668695234fb2ed4e2fd53f9a93a08dc222c4c13beb1eff39abb05eb978804603cfb23b46b8e2a91e0b9461f4603c69c02f0e946164f0a6a870a36feebf9211aa3560c0490')
+      })
+
+    })
+
   })
 
 })
