@@ -630,6 +630,82 @@ struct BlindingContext {
   nonce: ProofNonce,
 }
 
+/// Verify the proof of hidden messages and commitment send from calling
+/// `bbs_blind_signature_commitment`. Signer should call this before creating a blind signature
+///
+/// `blind_signature_context`: `Object` the context for the blind signature creation
+/// The context object model is as follows:
+/// {
+///     "commitment": ArrayBuffer,              // Commitment of hidden messages
+///     "proofOfHiddenMessages": ArrayBuffer,   // Proof of commitment to hidden messages
+///     "challengeHash": ArrayBuffer,           // Fiat-Shamir Challenge
+///     "publicKey": ArrayBuffer                // The public key of signer
+///     "blinded": [Number, Number],            // The zero based indices to the generators in the public key for the blinded messages.
+///     "nonce": ArrayBuffer                    // This is an optional nonce from the signer and will be used in the proof of committed messages if present. It is strongly recommend that this be used.
+/// }
+/// `return`: true if valid `signature` on `messages`
+fn node_bbs_verify_blind_signature_proof(mut cx: FunctionContext) -> JsResult<JsBoolean> {
+  let js_obj = cx.argument::<JsObject>(0)?;
+  let pk_bytes = obj_property_to_slice!(&mut cx, js_obj, "publicKey");
+  let public_key = PublicKey::from_bytes_compressed_form(pk_bytes.as_slice()).unwrap();
+  if public_key.validate().is_err() {
+      panic!("Invalid key");
+  }
+  let nonce_str = obj_property_to_opt_slice!(&mut cx, js_obj, "nonce");
+  let nonce = ProofNonce::hash(
+      &(nonce_str.map_or_else(
+          || b"bbs+nodejswrapper".to_vec(),
+          |m| m,
+      )),
+  );
+  let commitment = Commitment::from(obj_property_to_fixed_array!(
+      &mut cx,
+      js_obj,
+      "commitment",
+      0,
+      G1_COMPRESSED_SIZE
+  ));
+  let challenge_hash = ProofChallenge::from(obj_property_to_fixed_array!(
+      &mut cx,
+      js_obj,
+      "challengeHash",
+      0,
+      FR_COMPRESSED_SIZE
+  ));
+
+  let proof_of_hidden_messages = handle_err!(ProofG1::from_bytes_compressed_form(
+      &obj_property_to_slice!(&mut cx, js_obj, "proofOfHiddenMessages")
+  ));
+
+  let hidden = obj_property_to_vec!(&mut cx, js_obj, "blinded");
+  let mut messages: BTreeSet<usize> = (0..public_key.message_count()).collect();
+  let message_count = public_key.message_count() as f64;
+
+  for i in 0..hidden.len() {
+      let index = cast_to_number!(cx, hidden[i]);
+      if index < 0f64 || index > message_count {
+          panic!(
+              "Index is out of bounds. Must be between {} and {}: found {}",
+              0,
+              public_key.message_count(),
+              index
+          );
+      }
+      messages.remove(&(index as usize));
+  }
+
+  let ctx = BlindSignatureContext {
+      commitment,
+      challenge_hash,
+      proof_of_hidden_messages,
+  };
+
+  match ctx.verify(&messages, &public_key, &nonce) {
+      Ok(b) => Ok(cx.boolean(b)),
+      Err(_) => Ok(cx.boolean(false)),
+  }
+}
+
 register_module!(mut cx, {
   cx.export_function("bls_generate_blinded_g1_key", node_bls_generate_blinded_g1_key)?;
   cx.export_function("bls_generate_blinded_g2_key", node_bls_generate_blinded_g2_key)?;
@@ -645,6 +721,10 @@ register_module!(mut cx, {
   cx.export_function(
       "bbs_blind_signature_commitment",
       node_bbs_blind_signature_commitment,
+  )?;
+  cx.export_function(
+      "bbs_verify_blind_signature_proof",
+      node_bbs_verify_blind_signature_proof,
   )?;
   Ok(())
 });
