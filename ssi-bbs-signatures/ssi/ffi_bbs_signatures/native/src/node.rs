@@ -804,6 +804,29 @@ struct BlindSignContext {
     secret_key: SecretKey,
 }
 
+/// Takes a blinded signature and makes it unblinded
+///
+/// inputs are the signature and the blinding factor generated from
+/// `bbs_blind_signature_commitment`
+///
+/// `signature`: `ArrayBuffer` length must be `SIGNATURE_SIZE`
+/// `blindingFactor`: `ArrayBuffer` length must be `MESSAGE_SIZE`
+/// `return`: `ArrayBuffer` the unblinded signature
+fn node_bbs_get_unblinded_signature(mut cx: FunctionContext) -> JsResult<JsArrayBuffer> {
+    let sig = BlindSignature::from(arg_to_fixed_array!(cx, 0, 0, SIGNATURE_COMPRESSED_SIZE));
+    let bf = SignatureBlinding::from(arg_to_fixed_array!(
+        cx,
+        1,
+        0,
+        FR_COMPRESSED_SIZE
+    ));
+
+    let sig = sig.to_unblinded(&bf);
+
+    let result = slice_to_js_array_buffer!(&sig.to_bytes_compressed_form()[..], cx);
+    Ok(result)
+}
+
 register_module!(mut cx, {
   cx.export_function("bls_generate_blinded_g1_key", node_bls_generate_blinded_g1_key)?;
   cx.export_function("bls_generate_blinded_g2_key", node_bls_generate_blinded_g2_key)?;
@@ -825,5 +848,6 @@ register_module!(mut cx, {
       node_bbs_verify_blind_signature_proof,
   )?;
   cx.export_function("bbs_blind_sign", node_bbs_blind_sign)?;
+  cx.export_function("bbs_get_unblinded_signature", node_bbs_get_unblinded_signature)?;
   Ok(())
 });
