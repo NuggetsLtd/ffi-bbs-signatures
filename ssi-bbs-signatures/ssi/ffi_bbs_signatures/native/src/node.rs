@@ -233,6 +233,129 @@ fn node_bbs_verify(mut cx: FunctionContext) -> JsResult<JsBoolean> {
   }
 }
 
+/// Create a signature proof of knowledge. This includes revealing some messages
+/// and retaining others. Not revealed attributes will have a proof of committed values
+/// instead of revealing the values.
+///
+/// `create_proof_context`: `Object` the context for creating a proof
+/// The context object model is as follows:
+/// {
+///     "signature": ArrayBuffer,               // The signature to be proved
+///     "publicKey": ArrayBuffer,               // The public key of the signer
+///     "messages": [ArrayBuffer, ArrayBuffer]  // All messages that were signed in the order they correspond to the generators in the public key. They will be Blake2b hashed
+///     "revealed": [Number, Number]            // The zero based indices to the generators in the public key for the messages to be revealed. All other messages will be hidden from the verifier.
+///     "nonce": ArrayBuffer                    // This is an optional nonce from the verifier and will be used in the proof of committed messages if present. It is strongly recommend that this be used.
+/// }
+///
+/// `return`: `ArrayBuffer` the proof to send to the verifier
+fn node_bbs_create_proof(mut cx: FunctionContext) -> JsResult<JsArrayBuffer> {
+  let (mut bitvector, pcx) = extract_create_proof_context(&mut cx)?;
+  let proof = generate_proof(pcx)?;
+
+  bitvector.extend_from_slice(proof.to_bytes_compressed_form().as_slice());
+
+  Ok(slice_to_js_array_buffer!(
+      bitvector.as_slice(),
+      cx
+  ))
+}
+
+fn generate_proof(pcx: CreateProofContext) -> Result<PoKOfSignatureProof, Throw> {
+    let pok = handle_err!(PoKOfSignature::init(
+        &pcx.signature,
+        &pcx.public_key,
+        &pcx.messages.as_slice()
+    ));
+    let mut challenge_bytes = pok.to_bytes();
+    if let Some(b) = pcx.nonce {
+        challenge_bytes.extend_from_slice(&ProofNonce::hash(b.as_slice()).to_bytes_compressed_form());
+    } else {
+        challenge_bytes.extend_from_slice(&[0u8; FR_COMPRESSED_SIZE]);
+    }
+
+    let challenge_hash = ProofChallenge::hash(&challenge_bytes);
+    Ok(handle_err!(pok.gen_proof(&challenge_hash)))
+}
+
+fn extract_create_proof_context(cx: &mut FunctionContext) -> Result<(Vec<u8>, CreateProofContext), Throw> {
+    let js_obj = cx.argument::<JsObject>(0)?;
+
+    let signature = Signature::from(obj_property_to_fixed_array!(
+        cx,
+        js_obj,
+        "signature",
+        0,
+        SIGNATURE_COMPRESSED_SIZE
+    ));
+    let pk_bytes = obj_property_to_slice!(cx, js_obj, "publicKey");
+    let public_key = PublicKey::from_bytes_compressed_form(pk_bytes.as_slice()).unwrap();
+    if public_key.validate().is_err() {
+        panic!("Invalid key");
+    }
+
+    let nonce = obj_property_to_opt_slice!(cx, js_obj, "nonce");
+
+    let revealed_indices = obj_property_to_vec!(cx, js_obj, "revealed");
+    let message_bytes = obj_property_to_vec!(cx, js_obj, "messages");
+
+    let mut revealed = BTreeSet::new();
+    for i in 0..revealed_indices.len() {
+        let index = cast_to_number!(cx, revealed_indices[i]);
+        if index < 0f64 || index as usize > message_bytes.len() {
+            panic!(
+                "Index is out of bounds. Must be between 0 and {}: {}",
+                message_bytes.len(),
+                index
+            );
+        }
+        revealed.insert(index as usize);
+    }
+
+    let mut messages = Vec::new();
+    for i in 0..message_bytes.len() {
+        let message = js_array_buffer_to_slice!(cx, message_bytes[i]);
+        let message = SignatureMessage::hash(message);
+
+        if revealed.contains(&i) {
+            messages.push(pm_revealed_raw!(message));
+        } else {
+            messages.push(pm_hidden_raw!(message));
+        }
+    }
+
+    let mut bitvector = (messages.len() as u16).to_be_bytes().to_vec();
+    bitvector.append(&mut revealed_to_bitvector(messages.len(), &revealed));
+
+    Ok((bitvector, CreateProofContext {
+        signature,
+        public_key,
+        messages,
+        nonce,
+    }))
+}
+
+struct CreateProofContext {
+    signature: Signature,
+    public_key: PublicKey,
+    messages: Vec<ProofMessage>,
+    nonce: Option<Vec<u8>>,
+}
+
+/// Expects `revealed` to be sorted
+fn revealed_to_bitvector(total: usize, revealed: &BTreeSet<usize>) -> Vec<u8> {
+    let mut bytes = vec![0u8; (total / 8) + 1];
+
+    for r in revealed {
+        let idx = *r / 8;
+        let bit = (*r % 8) as u8;
+        bytes[idx] |= 1u8 << bit;
+    }
+
+    // Convert to big endian
+    bytes.reverse();
+    bytes
+}
+
 register_module!(mut cx, {
   cx.export_function("bls_generate_blinded_g1_key", node_bls_generate_blinded_g1_key)?;
   cx.export_function("bls_generate_blinded_g2_key", node_bls_generate_blinded_g2_key)?;
@@ -242,5 +365,6 @@ register_module!(mut cx, {
   cx.export_function("bls_public_key_to_bbs_key", node_bls_public_key_to_bbs_key)?;
   cx.export_function("bbs_sign", node_bbs_sign)?;
   cx.export_function("bbs_verify", node_bbs_verify)?;
+  cx.export_function("bbs_create_proof", node_bbs_create_proof)?;
   Ok(())
 });
