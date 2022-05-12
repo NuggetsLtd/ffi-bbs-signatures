@@ -1,0 +1,15 @@
+{
+  "name": "@nuggetslife/ffi-bbs-signatures",
+  "version": "0.1.0",
+  "description": "Foreign Function Interface for BBS Signatures",
+  "main": "lib/index.js",
+  "author": {
+    "name": "Nuggets Ltd",
+    "email": "support@nuggets.life",
+    "url": "http://nuggets.life"
+  },
+  "contributors": [
+    "Andrew Lord (andrew.lord@nuggets.life)"
+  ],
+  "license": "GPL-3.0-or-later",
+}
