@@ -706,6 +706,104 @@ fn node_bbs_verify_blind_signature_proof(mut cx: FunctionContext) -> JsResult<Js
   }
 }
 
+/// Generate a BBS+ blind signature.
+/// This should be called by the signer and not the signature recipient
+/// 1 or more messages have been hidden by the signature recipient.
+/// The hidden and known messages are signed. This also verifies a
+/// proof of committed messages sent by the signature recipient.
+///
+/// `blind_signature_context`: `Object` the context for the blind signature creation
+/// The context object model is as follows:
+/// {
+///     "commitment": ArrayBuffer               // The commitment received from the intended recipient
+///     "publicKey": ArrayBuffer                // The public key of signer
+///     "secretKey": ArrayBuffer                // The secret key used for generating the signature
+///     "messages": [ArrayBuffer, ArrayBuffer]  // The messages that will be signed as strings. They will be hashed with Blake2b
+///     "known": [Number, Number],              // The zero based indices to the generators in the public key for the known messages.
+/// }
+///
+/// `return`: `ArrayBuffer` the blinded signature. Recipient must unblind before it is valid
+fn node_bbs_blind_sign(mut cx: FunctionContext) -> JsResult<JsArrayBuffer> {
+  let bcx = extract_blind_signature_context(&mut cx)?;
+  let signature = handle_err!(BlindSignature::new(
+      &bcx.commitment,
+      &bcx.messages,
+      &bcx.secret_key,
+      &bcx.public_key
+  ));
+  let result = slice_to_js_array_buffer!(&signature.to_bytes_compressed_form()[..], cx);
+  Ok(result)
+}
+
+fn extract_blind_signature_context(cx: &mut FunctionContext) -> Result<BlindSignContext, Throw> {
+    let js_obj = cx.argument::<JsObject>(0)?;
+
+    let secret_key = SecretKey::from(obj_property_to_fixed_array!(
+        cx,
+        js_obj,
+        "secretKey",
+        0,
+        FR_COMPRESSED_SIZE
+    ));
+
+    let pk_bytes = obj_property_to_slice!(cx, js_obj, "publicKey");
+    let public_key = PublicKey::from_bytes_compressed_form(pk_bytes.as_slice()).unwrap();
+    if public_key.validate().is_err() {
+        panic!("Invalid key");
+    }
+    let message_bytes = obj_property_to_vec!(cx, js_obj, "messages");
+
+    let known = obj_property_to_vec!(cx, js_obj, "known");
+    if known.len() != message_bytes.len() {
+        panic!(
+            "known length != messages: {} != {}",
+            known.len(),
+            message_bytes.len()
+        );
+    }
+
+    let message_count = public_key.message_count() as f64;
+    let mut messages = BTreeMap::new();
+
+    for i in 0..known.len() {
+        let index = cast_to_number!(cx, known[i]);
+        if index < 0f64 || index > message_count {
+            panic!(
+                "Index is out of bounds. Must be between {} and {}: found {}",
+                0,
+                public_key.message_count(),
+                index
+            );
+        }
+
+        let message = js_array_buffer_to_slice!(cx, message_bytes[i]);
+        messages.insert(index as usize, SignatureMessage::hash(message));
+    }
+
+    let commitment = Commitment::from(obj_property_to_fixed_array!(
+        cx,
+        js_obj,
+        "commitment",
+        0,
+        G1_COMPRESSED_SIZE
+    ));
+
+    Ok(BlindSignContext {
+        commitment,
+        messages,
+        public_key,
+        secret_key,
+    })
+}
+
+struct BlindSignContext {
+    commitment: Commitment,
+    public_key: PublicKey,
+    messages: BTreeMap<usize, SignatureMessage>,
+    /// This is automatically zeroed on drop
+    secret_key: SecretKey,
+}
+
 register_module!(mut cx, {
   cx.export_function("bls_generate_blinded_g1_key", node_bls_generate_blinded_g1_key)?;
   cx.export_function("bls_generate_blinded_g2_key", node_bls_generate_blinded_g2_key)?;
@@ -726,5 +824,6 @@ register_module!(mut cx, {
       "bbs_verify_blind_signature_proof",
       node_bbs_verify_blind_signature_proof,
   )?;
+  cx.export_function("bbs_blind_sign", node_bbs_blind_sign)?;
   Ok(())
 });
