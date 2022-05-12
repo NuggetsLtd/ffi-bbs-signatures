@@ -30,6 +30,7 @@ describe('NEON NodeJS Interface:', () => {
       'bbs_verify_proof',
       'bls_verify_proof',
       'bbs_blind_signature_commitment',
+      'bbs_verify_blind_signature_proof',
     ])
   })
 
@@ -46,6 +47,7 @@ describe('NEON NodeJS Interface:', () => {
     expect(typeof bbs.bbs_verify_proof).toBe('function')
     expect(typeof bbs.bls_verify_proof).toBe('function')
     expect(typeof bbs.bbs_blind_signature_commitment).toBe('function')
+    expect(typeof bbs.bbs_verify_blind_signature_proof).toBe('function')
   })
 
   describe('Functions', () => {
@@ -218,6 +220,53 @@ describe('NEON NodeJS Interface:', () => {
         expect(Buffer.from(challengeHash).length).toBe(32)
         expect(Buffer.from(blindingFactor).length).toBe(32)
         expect(Buffer.from(proofOfHiddenMessages).length).toBe(148)
+      })
+
+    })
+
+    describe('bbs_verify_blind_signature_proof()', () => {
+      let blsKey, bbsPublicKey
+
+      beforeAll(() => {
+        blsKey = bbs.bls_generate_blinded_g2_key(seed)
+        bbsPublicKey = bbs.bls_secret_key_to_bbs_key({ messageCount: messages.length, secretKey: blsKey.secretKey })
+      })
+
+      describe('should verify blind commitment context correctly', () => {
+
+        it('with 1 hidden message in commitment context', () => {
+          const { commitment, challengeHash, proofOfHiddenMessages } = bbs.bbs_blind_signature_commitment({ publicKey: bbsPublicKey, messages: [ messages[1] ], blinded: [ 1 ], nonce })
+          const verified = bbs.bbs_verify_blind_signature_proof({ commitment, challengeHash, proofOfHiddenMessages, publicKey: bbsPublicKey, blinded: [ 1 ], nonce })
+
+          expect(verified).toBe(true)
+        })
+
+        it('with 3 hidden messages in commitment context', () => {
+          const { commitment, challengeHash, proofOfHiddenMessages } = bbs.bbs_blind_signature_commitment({ publicKey: bbsPublicKey, messages, blinded: [ 0, 1, 2 ], nonce })
+          const verified = bbs.bbs_verify_blind_signature_proof({ commitment, challengeHash, proofOfHiddenMessages, publicKey: bbsPublicKey, blinded: [ 0, 1, 2 ], nonce })
+
+          expect(verified).toBe(true)
+        })
+
+      })
+
+      describe('should NOT verify blind commitment context', () => {
+
+        it('where incorrect blinded message indexes supplied', () => {
+          const { commitment, challengeHash, proofOfHiddenMessages } = bbs.bbs_blind_signature_commitment({ publicKey: bbsPublicKey, messages: [ messages[0], messages[1] ], blinded: [ 0, 1 ], nonce })
+          const verified = bbs.bbs_verify_blind_signature_proof({ commitment, challengeHash, proofOfHiddenMessages, publicKey: bbsPublicKey, blinded: [ 0 ], nonce })
+
+          expect(verified).toBe(false)
+        })
+
+        it('where incorrect nonce supplied', () => {
+          const randomNonce = Uint8Array.from(crypto.randomBytes(32)).buffer
+          const { commitment, challengeHash, proofOfHiddenMessages } = bbs.bbs_blind_signature_commitment({ publicKey: bbsPublicKey, messages: [ messages[0], messages[1] ], blinded: [ 0, 1 ], nonce })
+          const verified = bbs.bbs_verify_blind_signature_proof({ commitment, challengeHash, proofOfHiddenMessages, publicKey: bbsPublicKey, blinded: [ 0 ], nonce: randomNonce })
+
+          expect(verified).toBe(false)
+        })
+
       })
 
     })
