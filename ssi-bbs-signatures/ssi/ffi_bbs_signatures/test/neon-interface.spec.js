@@ -29,6 +29,7 @@ describe('NEON NodeJS Interface:', () => {
       'bbs_create_proof',
       'bbs_verify_proof',
       'bls_verify_proof',
+      'bbs_blind_signature_commitment',
     ])
   })
 
@@ -44,6 +45,7 @@ describe('NEON NodeJS Interface:', () => {
     expect(typeof bbs.bbs_create_proof).toBe('function')
     expect(typeof bbs.bbs_verify_proof).toBe('function')
     expect(typeof bbs.bls_verify_proof).toBe('function')
+    expect(typeof bbs.bbs_blind_signature_commitment).toBe('function')
   })
 
   describe('Functions', () => {
@@ -196,6 +198,26 @@ describe('NEON NodeJS Interface:', () => {
 
         expect(() => bbs.bbs_sign({ secretKey: blsKey.secretKey, publicKey: bbsPublicKey, messages }))
           .toThrow(/Public key to message mismatch. Expected 1, found 1/)
+      })
+
+    })
+
+    describe('bbs_blind_signature_commitment()', () => {
+      let blsKey, bbsPublicKey
+
+      beforeAll(() => {
+        blsKey = bbs.bls_generate_blinded_g2_key(seed)
+        bbsPublicKey = bbs.bls_secret_key_to_bbs_key({ messageCount: messages.length, secretKey: blsKey.secretKey })
+      })
+
+      it('should generate blind commitment context correctly', () => {
+
+        const { commitment, challengeHash, blindingFactor, proofOfHiddenMessages } = bbs.bbs_blind_signature_commitment({ publicKey: bbsPublicKey, messages: [ messages[0], messages[1] ], blinded: [ 0, 1 ], nonce })
+
+        expect(Buffer.from(commitment).length).toBe(48)
+        expect(Buffer.from(challengeHash).length).toBe(32)
+        expect(Buffer.from(blindingFactor).length).toBe(32)
+        expect(Buffer.from(proofOfHiddenMessages).length).toBe(148)
       })
 
     })
