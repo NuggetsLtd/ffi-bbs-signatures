@@ -32,6 +32,7 @@ describe('NEON NodeJS Interface:', () => {
       'bbs_blind_signature_commitment',
       'bbs_verify_blind_signature_proof',
       'bbs_blind_sign',
+      'bbs_get_unblinded_signature'
     ])
   })
 
@@ -50,6 +51,7 @@ describe('NEON NodeJS Interface:', () => {
     expect(typeof bbs.bbs_blind_signature_commitment).toBe('function')
     expect(typeof bbs.bbs_verify_blind_signature_proof).toBe('function')
     expect(typeof bbs.bbs_blind_sign).toBe('function')
+    expect(typeof bbs.bbs_get_unblinded_signature).toBe('function')
   })
 
   describe('Functions', () => {
@@ -290,6 +292,26 @@ describe('NEON NodeJS Interface:', () => {
 
     })
 
+    describe('bbs_get_unblinded_signature()', () => {
+      let blsKey, bbsPublicKey
+
+      beforeAll(() => {
+        blsKey = bbs.bls_generate_blinded_g2_key(seed)
+        bbsPublicKey = bbs.bls_secret_key_to_bbs_key({ messageCount: messages.length, secretKey: blsKey.secretKey })
+      })
+
+      it('should retrieve unblinded signature of the correct length', () => {
+        const { commitment, blindingFactor } = bbs.bbs_blind_signature_commitment({ publicKey: bbsPublicKey, messages: [ messages[0], messages[1] ], blinded: [ 0, 1 ], nonce })
+        const blindSignature = bbs.bbs_blind_sign({ commitment, publicKey: bbsPublicKey, secretKey: blsKey.secretKey, messages: [ messages[2] ], known: [ 2 ] })
+
+        expect(Buffer.from(blindSignature).length).toBe(112)
+
+        const unblindedSignature = bbs.bbs_get_unblinded_signature(blindSignature, blindingFactor)
+
+        expect(Buffer.from(unblindedSignature).length).toBe(112)
+      })
+
+    })
 
     describe('bbs_verify()', () => {
       let blsKey
@@ -314,6 +336,42 @@ describe('NEON NodeJS Interface:', () => {
           const signature = bbs.bbs_sign({ secretKey: blsKey.secretKey, publicKey: bbsPublicKey, messages })
 
           const verified = bbs.bbs_verify({ signature, publicKey: bbsPublicKey, messages })
+
+          expect(verified).toBe(true)
+        })
+
+      })
+
+      describe('should verify blinded signature', () => {
+
+        it('where 1 blinded message is signed', () => {
+          const bbsPublicKey = bbs.bls_secret_key_to_bbs_key({ messageCount: 1, secretKey: blsKey.secretKey })
+
+          // single blinded message commitment
+          const { commitment, blindingFactor } = bbs.bbs_blind_signature_commitment({ publicKey: bbsPublicKey, messages: [ messages[0] ], blinded: [ 0 ], nonce })
+
+          // blind sign with no unblinded messages
+          const blindSignature = bbs.bbs_blind_sign({ commitment, publicKey: bbsPublicKey, secretKey: blsKey.secretKey, messages: [ ], known: [ ] })
+          const unblindedSignature = bbs.bbs_get_unblinded_signature(blindSignature, blindingFactor)
+
+          // verify unblinded signature
+          const verified = bbs.bbs_verify({ signature: unblindedSignature, publicKey: bbsPublicKey, messages: [ messages[0] ] })
+
+          expect(verified).toBe(true)
+        })
+
+        it('where 2 blinded messages, and 1 unblinded are signed', () => {
+          const bbsPublicKey = bbs.bls_secret_key_to_bbs_key({ messageCount: messages.length, secretKey: blsKey.secretKey })
+
+          // 2x blinded message commitment
+          const { commitment, blindingFactor } = bbs.bbs_blind_signature_commitment({ publicKey: bbsPublicKey, messages: [ messages[0], messages[1] ], blinded: [ 0, 1 ], nonce })
+
+          // blind sign with 1 unblinded message
+          const blindSignature = bbs.bbs_blind_sign({ commitment, publicKey: bbsPublicKey, secretKey: blsKey.secretKey, messages: [ messages[2] ], known: [ 2 ] })
+          const unblindedSignature = bbs.bbs_get_unblinded_signature(blindSignature, blindingFactor)
+
+          // verify unblinded signature
+          const verified = bbs.bbs_verify({ signature: unblindedSignature, publicKey: bbsPublicKey, messages })
 
           expect(verified).toBe(true)
         })
@@ -388,6 +446,19 @@ describe('NEON NodeJS Interface:', () => {
           expect(Buffer.from(proof).length).toBe(383)
         })
 
+        it('where signature contains blinded messages', () => {
+          // 2x blinded message commitment
+          const { commitment, blindingFactor } = bbs.bbs_blind_signature_commitment({ publicKey: bbsPublicKey, messages: [ messages[0], messages[1] ], blinded: [ 0, 1 ], nonce })
+
+          // blind sign with 1 unblinded message
+          const blindSignature = bbs.bbs_blind_sign({ commitment, publicKey: bbsPublicKey, secretKey: blsKey.secretKey, messages: [ messages[2] ], known: [ 2 ] })
+          const unblindedSignature = bbs.bbs_get_unblinded_signature(blindSignature, blindingFactor)
+
+          // generate proof with blinded & unblinded messages
+          const proof = bbs.bbs_create_proof({ signature: unblindedSignature, publicKey: bbsPublicKey, messages, revealed: [ 0, 1, 2 ], nonce })
+
+          expect(Buffer.from(proof).length).toBe(383)
+        })
 
       })
 
@@ -420,6 +491,49 @@ describe('NEON NodeJS Interface:', () => {
           expect(verified).toBe(true)
         })
 
+        describe('with blinded messages', () => {
+          let unblindedSignature
+
+          beforeAll(() => {
+            // 2x blinded message commitment
+            const { commitment, blindingFactor } = bbs.bbs_blind_signature_commitment({ publicKey: bbsPublicKey, messages: [ messages[0], messages[1] ], blinded: [ 0, 1 ], nonce })
+
+            // blind sign with 1 unblinded message
+            const blindSignature = bbs.bbs_blind_sign({ commitment, publicKey: bbsPublicKey, secretKey: blsKey.secretKey, messages: [ messages[2] ], known: [ 2 ] })
+            unblindedSignature = bbs.bbs_get_unblinded_signature(blindSignature, blindingFactor)
+          })
+
+          it('where 1 unblinded message revealed', () => {
+            // derive proof for 1 (unblinded) message
+            const proof = bbs.bbs_create_proof({ signature: unblindedSignature, publicKey: bbsPublicKey, messages, revealed: [ 2 ], nonce })
+
+            // verify proof with unblinded message
+            const verified = bbs.bbs_verify_proof({ proof, publicKey: bbsPublicKey, messages: [ messages[2] ], nonce })
+
+            expect(verified).toBe(true)
+          })
+
+          it('where 1 blinded message revealed', () => {
+            // derive proof for 1 (blinded) message
+            const proof = bbs.bbs_create_proof({ signature: unblindedSignature, publicKey: bbsPublicKey, messages, revealed: [ 0 ], nonce })
+
+            // verify proof with unblinded message
+            const verified = bbs.bbs_verify_proof({ proof, publicKey: bbsPublicKey, messages: [ messages[0] ], nonce })
+
+            expect(verified).toBe(true)
+          })
+
+          it('where all messages revealed (2x blinded & 1x unblinded)', () => {
+            // derive proof for all messages
+            const proof = bbs.bbs_create_proof({ signature: unblindedSignature, publicKey: bbsPublicKey, messages, revealed: [ 0, 1, 2 ], nonce })
+
+            // verify proof with all messages
+            const verified = bbs.bbs_verify_proof({ proof, publicKey: bbsPublicKey, messages, nonce })
+
+            expect(verified).toBe(true)
+          })
+
+        })
 
       })
 
@@ -443,7 +557,21 @@ describe('NEON NodeJS Interface:', () => {
             .toThrow(/The proof failed due to An invalid signature was supplied/)
         })
 
-    })
+        it('with blinded messages, where messages are incorrect', () => {
+          // 2x blinded message commitment
+          const { commitment, blindingFactor } = bbs.bbs_blind_signature_commitment({ publicKey: bbsPublicKey, messages: [ messages[0], messages[1] ], blinded: [ 0, 1 ], nonce })
+
+          // blind sign with 1 unblinded message
+          const blindSignature = bbs.bbs_blind_sign({ commitment, publicKey: bbsPublicKey, secretKey: blsKey.secretKey, messages: [ messages[2] ], known: [ 2 ] })
+          const unblindedSignature = bbs.bbs_get_unblinded_signature(blindSignature, blindingFactor)
+
+          // derive proof for all messages
+          const proof = bbs.bbs_create_proof({ signature: unblindedSignature, publicKey: bbsPublicKey, messages, revealed: [ 0, 1, 2 ], nonce })
+
+          // attempt to verify with incorrect messages
+          expect(() => bbs.bbs_verify_proof({ proof, publicKey: bbsPublicKey, messages: [ messages[2], messages[2], messages[2] ], nonce }))
+            .toThrow(/The proof failed due to a revealed message was supplied that was not signed or a message was revealed that was initially hidden/)
+        })
 
       })
 
