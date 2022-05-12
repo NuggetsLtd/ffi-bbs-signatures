@@ -20,12 +20,14 @@ describe('NEON NodeJS Interface:', () => {
     expect(Object.keys(bbs)).toEqual([
       'bls_generate_blinded_g1_key',
       'bls_generate_blinded_g2_key',
+      'bls_generate_g1_key',
     ])
   })
 
   it('should export foreign function interface functions', () => {
     expect(typeof bbs.bls_generate_blinded_g1_key).toBe('function')
     expect(typeof bbs.bls_generate_blinded_g2_key).toBe('function')
+    expect(typeof bbs.bls_generate_g1_key).toBe('function')
   })
 
   describe('Functions', () => {
@@ -62,6 +64,26 @@ describe('NEON NodeJS Interface:', () => {
 
         expect(Buffer.from(blsKey.publicKey).length).toBe(96)
         expect(Buffer.from(blsKey.secretKey).length).toBe(32)
+      })
+
+    })
+
+    describe('bls_generate_blinded_g1_key()', () => {
+
+      it('where "seed" is provided', async () => {
+        const blsKey = bbs.bls_generate_blinded_g1_key(seed)
+
+        expect(Buffer.from(blsKey.publicKey).toString('hex')).toBe('af108e14a93936f1d966a518d1be83770bc11a0caa6509a62fdbc1dedf2202f63620438117c975ac1576dc1482955e7a')
+        expect(Buffer.from(blsKey.secretKey).toString('hex')).toBe('0a6e79d1d1deaa8e48fdd542fdb5c3f6ce42c7cbe7ca157f826eca3b952ebe21')
+        expect(Buffer.from(blsKey.blindingFactor).toString('hex')).toBe('4d8b083090288f084d723012f6117bff8440096bb8b56402d31bdf1ba1d88655')
+      })
+
+      it('where "seed" is NOT provided', async () => {
+        const blsKey = bbs.bls_generate_blinded_g1_key()
+
+        expect(Buffer.from(blsKey.publicKey).length).toBe(48)
+        expect(Buffer.from(blsKey.secretKey).length).toBe(32)
+        expect(Buffer.from(blsKey.blindingFactor).length).toBe(32)
       })
 
     })
