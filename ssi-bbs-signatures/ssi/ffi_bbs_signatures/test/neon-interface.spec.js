@@ -31,6 +31,7 @@ describe('NEON NodeJS Interface:', () => {
       'bls_verify_proof',
       'bbs_blind_signature_commitment',
       'bbs_verify_blind_signature_proof',
+      'bbs_blind_sign',
     ])
   })
 
@@ -48,6 +49,7 @@ describe('NEON NodeJS Interface:', () => {
     expect(typeof bbs.bls_verify_proof).toBe('function')
     expect(typeof bbs.bbs_blind_signature_commitment).toBe('function')
     expect(typeof bbs.bbs_verify_blind_signature_proof).toBe('function')
+    expect(typeof bbs.bbs_blind_sign).toBe('function')
   })
 
   describe('Functions', () => {
@@ -267,6 +269,23 @@ describe('NEON NodeJS Interface:', () => {
           expect(verified).toBe(false)
         })
 
+      })
+
+    })
+
+    describe('bbs_blind_sign()', () => {
+      let blsKey, bbsPublicKey
+
+      beforeAll(() => {
+        blsKey = bbs.bls_generate_blinded_g2_key(seed)
+        bbsPublicKey = bbs.bls_secret_key_to_bbs_key({ messageCount: messages.length, secretKey: blsKey.secretKey })
+      })
+
+      it('should generate blind signature of the correct length', () => {
+        const { commitment } = bbs.bbs_blind_signature_commitment({ publicKey: bbsPublicKey, messages: [ messages[0], messages[1] ], blinded: [ 0, 1 ], nonce })
+        const blindSignature = bbs.bbs_blind_sign({ commitment, publicKey: bbsPublicKey, secretKey: blsKey.secretKey, messages: [ messages[2] ], known: [ 2 ] })
+
+        expect(Buffer.from(blindSignature).length).toBe(112)
       })
 
     })
