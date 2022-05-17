@@ -1,6 +1,6 @@
 {
   "testMatch": [
-    "**/?(*.)+(spec|test).[jt]s?(x)"
+    "**/test/**/?(*.)+(spec|test).[jt]s?(x)"
   ],
   "coverageDirectory": "reports/junit/jest/coverage",
   "collectCoverageFrom": [
