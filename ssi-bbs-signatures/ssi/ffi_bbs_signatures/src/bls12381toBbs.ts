@@ -29,6 +29,9 @@ const bbs = require(path.resolve(path.join(__dirname, "../native/index.node")));
  */
 export const bls12381toBbs = async (request: Bls12381ToBbsRequest): Promise<BbsKeyPair> => {
   try {
+    if(!request.messageCount || request.messageCount <= 0){
+      throw new RangeError('Message count should be greater than 0')
+    }
     const result = bbs.bls_public_key_to_bbs_key({
       publicKey: request.keyPair.publicKey.buffer,
       messageCount: request.messageCount,
