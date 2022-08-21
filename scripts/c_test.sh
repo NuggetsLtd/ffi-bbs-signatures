@@ -15,7 +15,7 @@ echo ""
 echo ""
 echo "${BLUE}----- ⏳ COMPILE: C TEST CODE ---------------------------------------------------------${NC}"
 echo ""
-gcc wrappers/c/main.c -L native/target/release/ -ljose -o wrappers/c/test.out
+gcc wrappers/c/main.c -L native/target/release/ -lbbs -o wrappers/c/test.out
 echo ""
 echo "${GREEN}----- ✅ DONE: C TEST CODE -----------------------------------------------------------${NC}"
 echo ""

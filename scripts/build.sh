@@ -2,7 +2,7 @@ set -e
 
 PLATFORM=$1
 OUTPUT_LOCATION=./out
-LIB_NAME=jose
+LIB_NAME=bbs
 ANDROID_API_LEVEL=21
 MANIFEST_PATH=native/Cargo.toml
 
