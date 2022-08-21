@@ -1,0 +1,299 @@
+version: 2.1
+
+#+-----------------------------------------------------------------------------+
+#|                              PARAMETERS                                     |
+#+-----------------------------------------------------------------------------+
+
+parameters:
+  cache_version:
+    type: string
+    default: "v1"
+  aws_ecr_host:
+    type: string
+    default: "454245708275.dkr.ecr.eu-west-1.amazonaws.com"
+  project_name:
+    type: string
+    default: "Node FFI Jose"
+
+#+-----------------------------------------------------------------------------+
+#|                                 ORBS                                        |
+#+-----------------------------------------------------------------------------+
+
+orbs:
+  node: circleci/node@5.0.2
+  rust: circleci/rust@1.6.0
+
+#+-----------------------------------------------------------------------------+
+#|                               COMMANDS                                      |
+#+-----------------------------------------------------------------------------+
+
+commands:
+  install_packages:
+    steps:
+      - run:
+          name: Authorize NPM
+          command: echo "//registry.npmjs.org/:_authToken=$PRIVATE_NPM_TOKEN" > ~/.npmrc
+      - restore_cache:
+          key: yarn-cache-<< pipeline.parameters.cache_version >>-{{ checksum "yarn.lock" }}
+      - run:
+          name: Install node modules
+          command: yarn install --pure-lockfile
+      - save_cache:
+          key: yarn-cache-<< pipeline.parameters.cache_version >>-{{ checksum "yarn.lock" }}
+          paths:
+            - /home/circleci/.cache/yarn
+            - /Users/distiller/Library/Caches/yarn
+            - /node_modules
+
+#+-----------------------------------------------------------------------------+
+#|                               EXECUTORS                                     |
+#+-----------------------------------------------------------------------------+
+
+executors:
+  node-14-linux-libc:
+    docker:
+      - image: << pipeline.parameters.aws_ecr_host >>/rust-node-14-libc-main:latest
+  node-14-linux-musl:
+    docker:
+      - image: << pipeline.parameters.aws_ecr_host >>/rust-node-14-musl-main:latest
+  node-16-linux-libc:
+    docker:
+      - image: << pipeline.parameters.aws_ecr_host >>/rust-node-16-libc-main:latest
+  node-16-linux-musl:
+    docker:
+      - image: << pipeline.parameters.aws_ecr_host >>/rust-node-16-musl-main:latest
+  mac:
+    macos:
+      xcode: "14.0.0"
+    # use a --login shell so our "set Ruby version" command gets picked up for later steps
+    shell: /bin/bash --login -o pipefail
+    environment:
+      LC_ALL: en_US.UTF-8
+      LANG: en_US.UTF-8
+
+#+-----------------------------------------------------------------------------+
+#|                                 JOBS                                        |
+#+-----------------------------------------------------------------------------+
+
+jobs:
+  # test & lint jobs for linux
+  test-linux:
+    description: << parameters.executor >>
+    parameters:
+      executor:
+        type: executor
+    executor: << parameters.executor >>
+    steps:
+      - checkout
+      - install_packages
+      - run:
+          name: Lint
+          command: yarn lint
+      - run:
+          name: Build
+          command: |
+            #!/bin/bash
+
+            OS=$(uname -o)
+
+            echo -e "\n 🏗️  Running Node v'$NODE_VERSION' build for '$OS'"
+            set -e
+
+            export PATH=$PATH:~/.cargo/bin
+
+            # check for MUSL Linux (non-GNU)
+            if [ "$OS" = "Linux" ]; then
+              CARGO_NET_GIT_FETCH_WITH_CLI=true
+              RUSTFLAGS="-C target-feature=-crt-static"
+              export RUSTFLAGS
+            else # GNU Linux
+              CARGO_NET_GIT_FETCH_WITH_CLI=false
+            fi
+
+            export CARGO_NET_GIT_FETCH_WITH_CLI
+
+            # build Neon binary for current architecture
+            echo -e "\n ⚒️  Building package\n"
+            /usr/local/bin/yarn build
+      - run:
+          name: Test
+          command: yarn test --coverage
+  # test & lint jobs for macos
+  test-mac:
+    description: << parameters.node-version >>
+    parameters:
+      node-version:
+        type: string
+    executor: mac
+    steps:
+      - checkout
+      - node/install:
+          install-yarn: true
+          node-version: << parameters.node-version >>
+      - rust/install
+      - run:
+          name: Install NPM Packages
+          command: |
+            echo "//registry.npmjs.org/:_authToken=$PRIVATE_NPM_TOKEN" > ~/.npmrc
+            yarn install --frozen-lockfile --production="false" --force
+      - run:
+          name: Build Typescript & Rust Binary
+          command: yarn build
+      - run:
+          name: Test
+          command: yarn test
+
+  # build & publish NPM Package
+  publish-package:
+    executor: mac
+    steps:
+      - checkout
+      - run:
+          name: Publish Check
+          command: |
+            GIT_COMMIT_MESSAGE=$(git log --format=%s -n 1 $CIRCLE_SHA1)
+
+            if [ "$GIT_COMMIT_MESSAGE" != "chore(release): publish" ]; then
+                curl -X POST "https://circleci.com/api/v2/workflow/$CIRCLE_WORKFLOW_ID/cancel?circle-token=$CIRCLE_API_TOKEN"
+                circleci-agent step halt
+            fi
+      - node/install:
+          install-yarn: true
+          node-version: "16"
+      - rust/install
+      - run:
+          name: Install NPM Packages
+          command: |
+            echo "//registry.npmjs.org/:_authToken=$PRIVATE_NPM_TOKEN" > ~/.npmrc
+            yarn install --frozen-lockfile --production="false" --force
+      - run:
+          name: Build Typescript & Rust Binary
+          command: yarn build
+      - run:
+          name: Publish NPM Package
+          command: yarn publish:ts
+
+  # build & publish for linux
+  publish-linux:
+    description: << parameters.executor >>
+    parameters:
+      executor:
+        type: executor
+    executor: << parameters.executor >>
+    steps:
+      - checkout
+      - install_packages
+      - run:
+          name: Build Rust Binary
+          command: |
+            #!/bin/bash
+            OS=$(uname -o)
+            echo -e "\n 🏗️  Running Node v'$NODE_VERSION' build for '$OS'"
+            set -e
+            export PATH=$PATH:~/.cargo/bin
+            # check for MUSL Linux (non-GNU)
+            if [ "$OS" = "Linux" ]; then
+              CARGO_NET_GIT_FETCH_WITH_CLI=true
+              RUSTFLAGS="-C target-feature=-crt-static"
+              export RUSTFLAGS
+            else # GNU Linux
+              CARGO_NET_GIT_FETCH_WITH_CLI=false
+            fi
+            export CARGO_NET_GIT_FETCH_WITH_CLI
+            # build Neon binary for current architecture
+            echo -e "\n ⚒️  Building package\n"
+            /usr/local/bin/yarn build
+      - run:
+          name: Publish Rust Binary
+          command: yarn publish:binary
+
+  # build & publish for macos
+  publish-mac:
+    description: << parameters.node-version >>
+    parameters:
+      node-version:
+        type: string
+    executor: mac
+    steps:
+      - checkout
+      - node/install:
+          install-yarn: true
+          node-version: << parameters.node-version >>
+      - rust/install
+      - run:
+          name: Install NPM Packages
+          command: |
+            echo "//registry.npmjs.org/:_authToken=$PRIVATE_NPM_TOKEN" > ~/.npmrc
+            yarn install --frozen-lockfile --production="false" --force
+      - run:
+          name: Build Typescript & Rust Binary
+          command: yarn build
+      - run:
+          name: Publish Rust Binary
+          command: yarn publish:binary
+
+#+-----------------------------------------------------------------------------+
+#|                                WORKFLOWS                                    |
+#+-----------------------------------------------------------------------------+
+
+workflows:
+  version: 2
+
+  # run all tests
+  test:
+    jobs:
+      - test-linux:
+          context: nuggets
+          filters:
+            branches:
+              ignore:
+                - master
+          name: "<< pipeline.parameters.project_name >>: << matrix.executor >>"
+          matrix:
+            parameters:
+              executor: [node-14-linux-libc, node-14-linux-musl, node-16-linux-libc, node-16-linux-musl]
+      - test-mac:
+          context: nuggets
+          filters:
+            branches:
+              ignore:
+                - master
+          name: "<< pipeline.parameters.project_name >>: node-<< matrix.node-version >>-macos"
+          matrix:
+            parameters:
+              node-version: ["14", "16"]
+
+  # build & publish binaries
+  publish:
+    jobs:
+      - publish-package:
+          context: nuggets
+          filters:
+            branches:
+              only:
+                - master
+          name: "<< pipeline.parameters.project_name >> Publish: NPM Package"
+      - publish-linux:
+          context: nuggets
+          requires:
+            - "<< pipeline.parameters.project_name >> Publish: NPM Package"
+          filters:
+            branches:
+              only:
+                - master
+          name: "<< pipeline.parameters.project_name >> Publish: << matrix.executor >>"
+          matrix:
+            parameters:
+              executor: [node-14-linux-libc, node-14-linux-musl, node-16-linux-libc, node-16-linux-musl]
+      - publish-mac:
+          context: nuggets
+          requires:
+            - "<< pipeline.parameters.project_name >> Publish: NPM Package"
+          filters:
+            branches:
+              only:
+                - master
+          name: "<< pipeline.parameters.project_name >> Publish: node-<< matrix.node-version >>-macos-undefined"
+          matrix:
+            parameters:
+              node-version: ["14", "16"]

@@ -1,0 +1,107 @@
+{
+  "name": "@nuggetslife/ffi-bbs-signatures",
+  "version": "0.1.0",
+  "description": "Foreign Function Interface (FFI) for BBS+ Signatures package",
+  "homepage": "https://github.com/NuggetsLtd/ffi-bbs-signatures",
+  "main": "lib/index.js",
+  "engines": {
+    "node": ">=14",
+    "yarn": "1.x"
+  },
+  "directories": {
+    "lib": "lib",
+    "native": "native"
+  },
+  "files": [
+    "lib",
+    "native/index.node"
+  ],
+  "typings": "lib/index.d.ts",
+  "author": {
+    "name": "Nuggets Ltd",
+    "email": "support@nuggets.life",
+    "url": "http://nuggets.life"
+  },
+  "contributors": [
+    "Andrew Lord (andrew.lord@nuggets.life)"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NuggetsLtd/ffi-bbs-signatures.git"
+  },
+  "binary": {
+    "module_name": "index",
+    "host": "https://github.com/NuggetsLtd/ffi-bbs-signatures/releases/download/",
+    "remote_path": "{version}",
+    "package_name": "{node_abi}-{platform}-{arch}-{libc}.tar.gz",
+    "module_path": "./native"
+  },
+  "scripts": {
+    "install:rust": "./scripts/install-dependencies.sh",
+    "test:c": "./scripts/c_test.sh",
+    "test:java": "./scripts/java_test.sh",
+    "test:neon": "./scripts/neon_test.sh",
+    "test:ts": "jest --config jest.config.typescript.js",
+    "test": "yarn test:neon && yarn test:ts",
+    "build": "yarn build:neon && yarn build:ts",
+    "build:env": "./scripts/build.sh",
+    "build:neon": "yarn build:env NODE",
+    "build:ios": "yarn build:env IOS",
+    "build:android": "yarn build:env ANDROID",
+    "build:ts": "tsc --pretty",
+    "package": "node-pre-gyp package",
+    "clean": "rimraf lib/ && rimraf native/index.node && rimraf native/target && neon clean",
+    "format": "prettier --write \"**/*.ts\" \"**/*.md\"  \"!**/lib/**\"",
+    "lint": "eslint . --ignore-path .gitignore --color --format=table",
+    "lint:fix": "yarn lint --fix",
+    "pre-pr": "yarn clean && yarn format && yarn lint:fix && yarn build && yarn test",
+    "publish:unstable:ts": "./scripts/publish_unstable_ts.sh",
+    "publish:binary": "./scripts/publish_binary.sh",
+    "publish:ts": "./scripts/publish_ts.sh",
+    "version": "conventional-changelog -p angular -i CHANGELOG.md -s && git add CHANGELOG.md",
+    "version:release": "yarn version --minor --message \"chore(release): publish\"",
+    "docs": "typedoc --out docs/api src",
+    "docs:rust": "cd native && cargo doc --no-deps --open",
+    "prepare": "husky install",
+    "prepublishOnly": "yarn build:ts"
+  },
+  "devDependencies": {
+    "@appliedblockchain/eslint-config": "^3.0.0",
+    "@commitlint/cli": "17.0.2",
+    "@commitlint/config-conventional": "17.0.2",
+    "@mathquis/node-pre-gyp-github": "1.0.1",
+    "@stablelib/base64": "1.0.0",
+    "@stablelib/benchmark": "1.0.0",
+    "@stablelib/random": "1.0.0",
+    "@types/jest": "28.1.2",
+    "@types/node": "12.7.2",
+    "@typescript-eslint/eslint-plugin": "2.28.0",
+    "@typescript-eslint/parser": "2.28.0",
+    "conventional-changelog": "3.1.25",
+    "conventional-changelog-cli": "2.2.2",
+    "copyfiles": "2.2.0",
+    "eslint": "6.8.0",
+    "eslint-config-prettier": "^6.10.1",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-prettier": "^3.1.3",
+    "husky": "8.0.1",
+    "jest": "28.1.1",
+    "prettier": "2.0.4",
+    "pretty-quick": "2.0.1",
+    "rimraf": "3.0.2",
+    "ts-jest": "28.0.5",
+    "ts-node": "8.4.1",
+    "typedoc": "0.22.17",
+    "typescript": "4.3.3"
+  },
+  "dependencies": {
+    "@mapbox/node-pre-gyp": "1.0.9",
+    "neon-cli": "0.10.1"
+  },
+  "resolutions": {
+    "neon-cli/**/handlebars": "4.7.7",
+    "conventional-changelog-cli/**/minimist": "1.2.6",
+    "conventional-changelog/**/minimist": "1.2.6",
+    "neon-cli/**/minimist": "1.2.6"
+  }
+}
