@@ -86,7 +86,7 @@ yarn benchmark
 
 ## Dependencies
 
-This library uses the [josekit](https://crates.io/crates/josekit) rust crate for the implementation of JOSE, which is
+This library uses the [BBS](https://crates.io/crates/bbs) rust crate for the implementation of BBS+ Signatures, which is
 then wrapped and exposed in javascript/typescript using [neon-bindings](https://github.com/neon-bindings/neon).
 
 ## Security Policy
