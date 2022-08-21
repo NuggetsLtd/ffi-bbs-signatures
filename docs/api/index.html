@@ -1,0 +1,89 @@
+<!DOCTYPE html><html class="default"><head><meta charSet="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>@nuggetslife/ffi-bbs-signatures</title><meta name="description" content="Documentation for @nuggetslife/ffi-bbs-signatures"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="assets/style.css"/><link rel="stylesheet" href="assets/highlight.css"/><script async src="assets/search.js" id="search-script"></script></head><body><script>document.body.classList.add(localStorage.getItem("tsd-theme") || "os")</script><header><div class="tsd-page-toolbar"><div class="container"><div class="table-wrap"><div class="table-cell" id="tsd-search" data-base="."><div class="field"><label for="tsd-search-field" class="tsd-widget search no-caption">Search</label><input type="text" id="tsd-search-field"/></div><ul class="results"><li class="state loading">Preparing search index...</li><li class="state failure">The search index is not available</li></ul><a href="index.html" class="title">@nuggetslife/ffi-bbs-signatures</a></div><div class="table-cell" id="tsd-widgets"><div id="tsd-filter"><a href="#" class="tsd-widget options no-caption" data-toggle="options">Options</a><div class="tsd-filter-group"><div class="tsd-select" id="tsd-filter-visibility"><span class="tsd-select-label">All</span><ul class="tsd-select-list"><li data-value="public">Public</li><li data-value="protected">Public/Protected</li><li data-value="private" class="selected">All</li></ul></div> <input type="checkbox" id="tsd-filter-inherited" checked/><label class="tsd-widget" for="tsd-filter-inherited">Inherited</label><input type="checkbox" id="tsd-filter-externals" checked/><label class="tsd-widget" for="tsd-filter-externals">Externals</label></div></div><a href="#" class="tsd-widget menu no-caption" data-toggle="menu">Menu</a></div></div></div></div><div class="tsd-page-title"><div class="container"><h1>@nuggetslife/ffi-bbs-signatures </h1></div></div></header><div class="container container-main"><div class="row"><div class="col-8 col-content"><div class="tsd-panel tsd-typography"><p><a href="https://github.com/NuggetsLtd"><img src="./docs/assets/nuggets-logo.svg" alt="Nuggets"></a></p>
+
+<a href="#node-bbs-signatures-ffi-foreign-function-interface" id="node-bbs-signatures-ffi-foreign-function-interface" style="color: inherit; text-decoration: none;">
+  <h1>Node BBS+ Signatures FFI (Foreign Function Interface)</h1>
+</a>
+<p><img src="https://badgen.net/npm/v/@nuggetslife/ffi-bbs-signatures" alt="npm-version">
+<img src="https://badgen.net/npm/v/@nuggetslife/ffi-bbs-signatures/unstable" alt="npm-unstable-version">
+<img src="https://github.com/NuggetsLtd/ffi-bbs-signatures/workflows/push-master/badge.svg" alt="Master">
+<img src="https://github.com/NuggetsLtd/ffi-bbs-signatures/workflows/push-release/badge.svg" alt="Release">
+<img src="https://codecov.io/gh/NuggetsLtd/ffi-bbs-signatures/branch/master/graph/badge.svg" alt="codecov"></p>
+<p>Interface for Rust BBS+ Signatures crate functions, for exposure in various JavaScript environments (i.e. NodeJS, React Native).</p>
+
+<a href="#getting-started" id="getting-started" style="color: inherit; text-decoration: none;">
+  <h2>Getting started</h2>
+</a>
+<p>To use this package within your project simply run:</p>
+<p><strong>npm</strong></p>
+<pre><code><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-0">install</span><span class="hl-1"> @</span><span class="hl-0">nuggetslife</span><span class="hl-1">/</span><span class="hl-0">ffi</span><span class="hl-1">-</span><span class="hl-0">bbs</span><span class="hl-1">-</span><span class="hl-0">signatures</span>
+</code></pre>
+<p><strong>yarn</strong></p>
+<pre><code><span class="hl-0">yarn</span><span class="hl-1"> </span><span class="hl-0">add</span><span class="hl-1"> @</span><span class="hl-0">nuggetslife</span><span class="hl-1">/</span><span class="hl-0">ffi</span><span class="hl-1">-</span><span class="hl-0">bbs</span><span class="hl-1">-</span><span class="hl-0">signatures</span>
+</code></pre>
+
+<a href="#usage" id="usage" style="color: inherit; text-decoration: none;">
+  <h2>Usage</h2>
+</a>
+<!-- See the [sample](./sample) directory for a runnable demo. -->
+
+<p><strong>Key generation:</strong></p>
+<pre><code class="language-typescript"><span class="hl-2">import</span><span class="hl-1"> { </span><span class="hl-0">generateBls12381G1KeyPair</span><span class="hl-1"> } </span><span class="hl-2">from</span><span class="hl-1"> </span><span class="hl-3">&quot;@nuggetslife/ffi-bbs-signatures&quot;</span><span class="hl-1">;</span><br/><br/><span class="hl-4">// Generate BLS key pair</span><br/><span class="hl-5">const</span><span class="hl-1"> </span><span class="hl-6">blsKeyPair</span><span class="hl-1"> = </span><span class="hl-2">await</span><span class="hl-1"> </span><span class="hl-7">generateBls12381G2KeyPair</span><span class="hl-1">();</span>
+</code></pre>
+
+<a href="#getting-started-as-a-contributor" id="getting-started-as-a-contributor" style="color: inherit; text-decoration: none;">
+  <h2>Getting started as a contributor</h2>
+</a>
+<p>The following describes how to get started as a contributor to this project</p>
+
+<a href="#prerequisites" id="prerequisites" style="color: inherit; text-decoration: none;">
+  <h3>Prerequisites</h3>
+</a>
+<p>The following is a list of dependencies you must install to build and contribute to this project</p>
+<ul>
+<li><a href="https://yarnpkg.com/">Yarn</a></li>
+<li><a href="https://www.rust-lang.org/">Rust</a></li>
+</ul>
+<p>For more details see our <a href="./docs/CONTRIBUTING.md">contribution guidelines</a></p>
+
+<a href="#install" id="install" style="color: inherit; text-decoration: none;">
+  <h4>Install</h4>
+</a>
+<p>To install the package dependencies run:</p>
+<pre><code><span class="hl-0">yarn</span><span class="hl-1"> </span><span class="hl-0">install</span><span class="hl-1"> --</span><span class="hl-0">frozen</span><span class="hl-1">-</span><span class="hl-0">lockfile</span>
+</code></pre>
+
+<a href="#build" id="build" style="color: inherit; text-decoration: none;">
+  <h4>Build</h4>
+</a>
+<p>To build the project run:</p>
+<pre><code><span class="hl-0">yarn</span><span class="hl-1"> </span><span class="hl-0">build</span>
+</code></pre>
+
+<a href="#test" id="test" style="color: inherit; text-decoration: none;">
+  <h4>Test</h4>
+</a>
+<p>To run the test in the project run:</p>
+<pre><code><span class="hl-0">yarn</span><span class="hl-1"> </span><span class="hl-0">test</span>
+</code></pre>
+
+<a href="#benchmark" id="benchmark" style="color: inherit; text-decoration: none;">
+  <h4>Benchmark</h4>
+</a>
+<p>To benchmark the implementation locally run:</p>
+<pre><code><span class="hl-0">yarn</span><span class="hl-1"> </span><span class="hl-0">benchmark</span>
+</code></pre>
+
+<a href="#dependencies" id="dependencies" style="color: inherit; text-decoration: none;">
+  <h2>Dependencies</h2>
+</a>
+<p>This library uses the <a href="https://crates.io/crates/bbs">BBS</a> rust crate for the implementation of BBS+ Signatures, which is
+then wrapped and exposed in javascript/typescript using <a href="https://github.com/neon-bindings/neon">neon-bindings</a>.</p>
+
+<a href="#security-policy" id="security-policy" style="color: inherit; text-decoration: none;">
+  <h2>Security Policy</h2>
+</a>
+<p>Please see our <a href="./SECURITY.md">security policy</a> for additional details about responsible disclosure of security related
+issues.</p>
+<hr>
+<p align="center"><a href="https://nuggets.life" target="_blank"><img height="40px" src ="./docs/assets/nuggets-logo.svg"></a></p><p align="center">Copyright © Nuggets Limited. <a href="./LICENSE">Some rights reserved.</a></p>
+</div></div><div class="col-4 col-menu menu-sticky-wrap menu-highlight"><nav class="tsd-navigation primary"><ul><li class="current"><a href="modules.html">Exports</a></li></ul></nav><nav class="tsd-navigation secondary menu-sticky"><ul><li class="tsd-kind-interface"><a href="interfaces/BbsBlindSignContext.html" class="tsd-kind-icon">Bbs<wbr/>Blind<wbr/>Sign<wbr/>Context</a></li><li class="tsd-kind-interface"><a href="interfaces/BbsBlindSignContextRequest.html" class="tsd-kind-icon">Bbs<wbr/>Blind<wbr/>Sign<wbr/>Context<wbr/>Request</a></li><li class="tsd-kind-interface"><a href="interfaces/BbsBlindSignRequest.html" class="tsd-kind-icon">Bbs<wbr/>Blind<wbr/>Sign<wbr/>Request</a></li><li class="tsd-kind-interface"><a href="interfaces/BbsCreateProofRequest.html" class="tsd-kind-icon">Bbs<wbr/>Create<wbr/>Proof<wbr/>Request</a></li><li class="tsd-kind-interface"><a href="interfaces/BbsKeyPair.html" class="tsd-kind-icon">Bbs<wbr/>Key<wbr/>Pair</a></li><li class="tsd-kind-interface"><a href="interfaces/BbsSignRequest.html" class="tsd-kind-icon">Bbs<wbr/>Sign<wbr/>Request</a></li><li class="tsd-kind-interface"><a href="interfaces/BbsVerifyBlindSignContextRequest.html" class="tsd-kind-icon">Bbs<wbr/>Verify<wbr/>Blind<wbr/>Sign<wbr/>Context<wbr/>Request</a></li><li class="tsd-kind-interface"><a href="interfaces/BbsVerifyProofRequest.html" class="tsd-kind-icon">Bbs<wbr/>Verify<wbr/>Proof<wbr/>Request</a></li><li class="tsd-kind-interface"><a href="interfaces/BbsVerifyRequest.html" class="tsd-kind-icon">Bbs<wbr/>Verify<wbr/>Request</a></li><li class="tsd-kind-interface"><a href="interfaces/BbsVerifyResult.html" class="tsd-kind-icon">Bbs<wbr/>Verify<wbr/>Result</a></li><li class="tsd-kind-interface"><a href="interfaces/BlindedBlsKeyPair.html" class="tsd-kind-icon">Blinded<wbr/>Bls<wbr/>Key<wbr/>Pair</a></li><li class="tsd-kind-interface"><a href="interfaces/Bls12381ToBbsRequest.html" class="tsd-kind-icon">Bls12381<wbr/>To<wbr/>Bbs<wbr/>Request</a></li><li class="tsd-kind-interface"><a href="interfaces/BlsBbsSignRequest.html" class="tsd-kind-icon">Bls<wbr/>Bbs<wbr/>Sign<wbr/>Request</a></li><li class="tsd-kind-interface"><a href="interfaces/BlsBbsVerifyRequest.html" class="tsd-kind-icon">Bls<wbr/>Bbs<wbr/>Verify<wbr/>Request</a></li><li class="tsd-kind-interface"><a href="interfaces/BlsKeyPair.html" class="tsd-kind-icon">Bls<wbr/>Key<wbr/>Pair</a></li><li class="tsd-kind-variable"><a href="modules.html#BBS_SIGNATURE_LENGTH" class="tsd-kind-icon">BBS_<wbr/>SIGNATURE_<wbr/>LENGTH</a></li><li class="tsd-kind-variable"><a href="modules.html#BLS12381_BLINDING_FACTOR_LENGTH" class="tsd-kind-icon">BLS12381_<wbr/>BLINDING_<wbr/>FACTOR_<wbr/>LENGTH</a></li><li class="tsd-kind-variable"><a href="modules.html#DEFAULT_BLS12381_G1_PUBLIC_KEY_LENGTH" class="tsd-kind-icon">DEFAULT_<wbr/>BLS12381_<wbr/>G1_<wbr/>PUBLIC_<wbr/>KEY_<wbr/>LENGTH</a></li><li class="tsd-kind-variable"><a href="modules.html#DEFAULT_BLS12381_G2_PUBLIC_KEY_LENGTH" class="tsd-kind-icon">DEFAULT_<wbr/>BLS12381_<wbr/>G2_<wbr/>PUBLIC_<wbr/>KEY_<wbr/>LENGTH</a></li><li class="tsd-kind-variable"><a href="modules.html#DEFAULT_BLS12381_PRIVATE_KEY_LENGTH" class="tsd-kind-icon">DEFAULT_<wbr/>BLS12381_<wbr/>PRIVATE_<wbr/>KEY_<wbr/>LENGTH</a></li><li class="tsd-kind-function"><a href="modules.html#bls12381toBbs" class="tsd-kind-icon">bls12381to<wbr/>Bbs</a></li><li class="tsd-kind-function"><a href="modules.html#blsCreateProof" class="tsd-kind-icon">bls<wbr/>Create<wbr/>Proof</a></li><li class="tsd-kind-function"><a href="modules.html#blsSign" class="tsd-kind-icon">bls<wbr/>Sign</a></li><li class="tsd-kind-function"><a href="modules.html#blsVerify" class="tsd-kind-icon">bls<wbr/>Verify</a></li><li class="tsd-kind-function"><a href="modules.html#blsVerifyProof" class="tsd-kind-icon">bls<wbr/>Verify<wbr/>Proof</a></li><li class="tsd-kind-function"><a href="modules.html#createProof" class="tsd-kind-icon">create<wbr/>Proof</a></li><li class="tsd-kind-function"><a href="modules.html#generateBlindedBls12381G1KeyPair" class="tsd-kind-icon">generate<wbr/>Blinded<wbr/>Bls12381<wbr/>G1<wbr/>Key<wbr/>Pair</a></li><li class="tsd-kind-function"><a href="modules.html#generateBlindedBls12381G2KeyPair" class="tsd-kind-icon">generate<wbr/>Blinded<wbr/>Bls12381<wbr/>G2<wbr/>Key<wbr/>Pair</a></li><li class="tsd-kind-function"><a href="modules.html#generateBls12381G1KeyPair" class="tsd-kind-icon">generate<wbr/>Bls12381<wbr/>G1<wbr/>Key<wbr/>Pair</a></li><li class="tsd-kind-function"><a href="modules.html#generateBls12381G2KeyPair" class="tsd-kind-icon">generate<wbr/>Bls12381<wbr/>G2<wbr/>Key<wbr/>Pair</a></li><li class="tsd-kind-function"><a href="modules.html#sign" class="tsd-kind-icon">sign</a></li><li class="tsd-kind-function"><a href="modules.html#verify" class="tsd-kind-icon">verify</a></li><li class="tsd-kind-function"><a href="modules.html#verifyProof" class="tsd-kind-icon">verify<wbr/>Proof</a></li></ul></nav></div></div></div><footer class="with-border-bottom"><div class="container"><h2>Legend</h2><div class="tsd-legend-group"><ul class="tsd-legend"><li class="tsd-kind-property tsd-parent-kind-interface"><span class="tsd-kind-icon">Property</span></li></ul></div><h2>Settings</h2><p>Theme <select id="theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></p></div></footer><div class="container tsd-generator"><p>Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></div><div class="overlay"></div><script src="assets/main.js"></script></body></html>
