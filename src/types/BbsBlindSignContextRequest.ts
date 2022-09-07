@@ -23,7 +23,7 @@ export interface BbsBlindSignContextRequest {
   /**
    * The zero based indices of which messages to hide
    */
-  readonly hidden: readonly number[];
+  readonly blinded: readonly number[];
   /**
    * A nonce for the resulting proof
    */

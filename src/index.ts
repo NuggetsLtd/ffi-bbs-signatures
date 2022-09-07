@@ -28,5 +28,9 @@ export {
   blsCreateProof,
   verifyProof,
   blsVerifyProof,
+  commitmentForBlindSignRequest,
+  verifyBlindSignContext,
+  blindSign,
+  unblindSignature,
 } from "./bbsSignature";
 export * from "./types";

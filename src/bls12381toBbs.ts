@@ -32,6 +32,19 @@ export const bls12381toBbs = async (request: Bls12381ToBbsRequest): Promise<BbsK
     if(!request.messageCount || request.messageCount <= 0){
       throw new RangeError('Message count should be greater than 0')
     }
+
+    if(request.keyPair.secretKey) {
+      const result = bbs.bls_secret_key_to_bbs_key({
+        secretKey: request.keyPair.secretKey.buffer,
+        messageCount: request.messageCount,
+      });
+      return {
+        publicKey: new Uint8Array(result),
+        secretKey: request.keyPair.secretKey,
+        messageCount: request.messageCount,
+      };
+    }
+
     const result = bbs.bls_public_key_to_bbs_key({
       publicKey: request.keyPair.publicKey.buffer,
       messageCount: request.messageCount,

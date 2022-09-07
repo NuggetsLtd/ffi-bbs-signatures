@@ -20,6 +20,10 @@ export interface BbsBlindSignRequest {
    */
   readonly commitment: Uint8Array;
   /**
+   * The public key of the holder
+   */
+  readonly publicKey: Uint8Array;
+  /**
    * The secret key of the signer
    */
   readonly secretKey: Uint8Array;
@@ -27,4 +31,8 @@ export interface BbsBlindSignRequest {
    * The known messages to sign
    */
   readonly messages: readonly Uint8Array[];
+  /**
+   * The zero based indices of which messages are known
+   */
+  readonly known: readonly number[];
 }

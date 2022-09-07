@@ -100,8 +100,8 @@ export const verify = async (request: BbsVerifyRequest): Promise<BbsVerifyResult
       messages: messageBuffers,
     });
     return { verified: result };
-  } catch (ex: any) {
-    return { verified: false, error: ex };
+  } catch (e) {
+    return { verified: false, error: `${e.name}: ${e.message}` };
   }
 };
 
@@ -116,14 +116,15 @@ export const blsVerify = async (request: BlsBbsVerifyRequest): Promise<BbsVerify
     const { publicKey, signature, messages } = request;
     const bbsKeyPair = await bls12381toBbs({ keyPair: { publicKey }, messageCount: messages.length });
     const messageBuffers = messages.map((_) => _.buffer);
+
     const result = bbs.bbs_verify({
       publicKey: bbsKeyPair.publicKey.buffer,
       signature: signature.buffer,
       messages: messageBuffers,
     });
     return { verified: result };
-  } catch (ex: any) {
-    return { verified: false, error: ex };
+  } catch (e) {
+    return { verified: false, error: `${e.name}: ${e.message}` };
   }
 };
 
@@ -193,8 +194,8 @@ export const verifyProof = async (request: BbsVerifyProofRequest): Promise<BbsVe
       messages: messageBuffers,
     });
     return { verified: result };
-  } catch (ex: any) {
-    return { verified: false, error: ex };
+  } catch (e) {
+    return { verified: false, error: `${e.name}: ${e.message}` };
   }
 };
 
@@ -215,8 +216,8 @@ export const blsVerifyProof = async (request: BbsVerifyProofRequest): Promise<Bb
       messages: messageBuffers,
     });
     return { verified: result };
-  } catch (ex: any) {
-    return { verified: false, error: ex };
+  } catch (e) {
+    return { verified: false, error: `${e.name}: ${e.message}` };
   }
 };
 
@@ -229,15 +230,22 @@ export const blsVerifyProof = async (request: BbsVerifyProofRequest): Promise<Bb
 export const commitmentForBlindSignRequest = async (
   request: BbsBlindSignContextRequest
 ): Promise<BbsBlindSignContext> => {
-  const { publicKey, messages, hidden, nonce } = request;
+  const { publicKey, messages, blinded, nonce } = request;
   const messageBuffers = messages.map((_) => _.buffer);
   try {
-    return bbs.bbs_blind_signature_commitment({
+    const { commitment , challengeHash, blindingFactor, proofOfHiddenMessages } = bbs.bbs_blind_signature_commitment({
       publicKey: publicKey.buffer,
       messages: messageBuffers,
-      hidden,
-      nonce,
+      blinded,
+      nonce: nonce.buffer,
     });
+
+    return {
+      commitment: new Uint8Array(commitment),
+      challengeHash: new Uint8Array(challengeHash),
+      blindingFactor: new Uint8Array(blindingFactor),
+      proofOfHiddenMessages: new Uint8Array(proofOfHiddenMessages),
+    }
   } catch {
     throw new Error("Failed to generate commitment");
   }
@@ -251,13 +259,14 @@ export const commitmentForBlindSignRequest = async (
  */
 export const verifyBlindSignContext = async (request: BbsVerifyBlindSignContextRequest): Promise<boolean> => {
   const { commitment, proofOfHiddenMessages, challengeHash, publicKey, blinded, nonce } = request;
+
   return bbs.bbs_verify_blind_signature_proof({
     commitment: commitment.buffer,
     proofOfHiddenMessages: proofOfHiddenMessages.buffer,
     challengeHash: challengeHash.buffer,
     publicKey: publicKey.buffer,
     blinded,
-    nonce,
+    nonce: nonce.buffer,
   });
 };
 
@@ -268,17 +277,36 @@ export const verifyBlindSignContext = async (request: BbsVerifyBlindSignContextR
  * @returns The raw signature value
  */
 export const blindSign = async (request: BbsBlindSignRequest): Promise<Uint8Array> => {
-  const { commitment, secretKey, messages } = request;
+  const { commitment, publicKey, secretKey, messages, known } = request;
   const messageBuffers = messages.map((_) => _.buffer);
   try {
     return new Uint8Array(
       bbs.bbs_blind_sign({
         commitment: commitment.buffer,
+        publicKey: publicKey.buffer,
         secretKey: secretKey.buffer,
         messages: messageBuffers,
+        known
       })
     );
-  } catch (ex) {
+  } catch {
     throw new Error("Failed to sign");
+  }
+};
+
+/**
+ * Unblind a blinded BBS+ Signature (featuring both known and blinded messages)
+ * @param blindSignature Blinded signature to unblind
+ * @param blindingFactor Blinding factor returned as part of commitment context from `commitmentForBlindSignRequest`
+ *
+ * @returns The raw signature value
+ */
+export const unblindSignature = async (blindSignature: Uint8Array, blindingFactor: Uint8Array): Promise<Uint8Array> => {
+  try {
+    return new Uint8Array(
+      bbs.bbs_get_unblinded_signature(blindSignature.buffer, blindingFactor.buffer)
+    );
+  } catch {
+    throw new Error("Failed to unblind signature");
   }
 };
