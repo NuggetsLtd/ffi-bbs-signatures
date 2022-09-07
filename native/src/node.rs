@@ -539,7 +539,6 @@ fn bitvector_to_revealed(data: &[u8]) -> BTreeSet<usize> {
 /// would allow the issuer to unblind the signature but would still not know the hidden message
 /// values.
 fn node_bbs_blind_signature_commitment(mut cx: FunctionContext) -> JsResult<JsObject> {
-  println!("{}", "bbs_blind_signature_commitment");
   let bcx = extract_blinding_context(&mut cx)?;
   let (bcx, bf) =
       Prover::new_blind_signature_context(&bcx.public_key, &bcx.messages, &bcx.nonce).unwrap();
