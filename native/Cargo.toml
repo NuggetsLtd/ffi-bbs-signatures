@@ -1,14 +1,13 @@
 [package]
-name = "neon-test"
+name = "ffi-bbs-signatures"
 version = "0.1.0"
-authors = ["Andrew Lord <andrew.lord@nuggets.life>"]
-license = "MIT"
+description = "A node wrapper for bbs-signatures"
 build = "build.rs"
 edition = "2018"
 exclude = ["artifacts.json", "index.node"]
 
 [lib]
-name = "neon_test"
+name = "ffi_bbs_signatures"
 crate-type = ["cdylib"]
 
 [build-dependencies]

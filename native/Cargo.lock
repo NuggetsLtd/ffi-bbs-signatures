@@ -289,6 +289,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "ffi-bbs-signatures"
+version = "0.1.0"
+dependencies = [
+ "arrayref",
+ "bbs",
+ "ffi-support",
+ "hkdf",
+ "jni",
+ "lazy_static",
+ "neon",
+ "neon-build",
+ "pairing-plus",
+ "rand 0.7.3",
+ "serde",
+ "sha2",
+]
+
+[[package]]
 name = "ffi-support"
 version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -470,24 +488,6 @@ checksum = "c376c75ccf632a20d2f18fd2bde0b10f36a9cc5c8c7c4921f629147ebf59aeb6"
 dependencies = [
  "cc",
  "regex",
-]
-
-[[package]]
-name = "neon-test"
-version = "0.1.0"
-dependencies = [
- "arrayref",
- "bbs",
- "ffi-support",
- "hkdf",
- "jni",
- "lazy_static",
- "neon",
- "neon-build",
- "pairing-plus",
- "rand 0.7.3",
- "serde",
- "sha2",
 ]
 
 [[package]]
