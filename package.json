@@ -50,7 +50,7 @@
     "build:android": "yarn build:env ANDROID",
     "build:ts": "tsc --pretty",
     "package": "node-pre-gyp package",
-    "clean": "rimraf lib/ && rimraf native/index.node && rimraf native/target && neon clean",
+    "clean": "rimraf lib/ & rimraf out/ & rimraf wrappers/c/*.h && rimraf native/index.node && rimraf native/target && neon clean",
     "format": "prettier --write \"**/*.ts\" \"**/*.md\"  \"!**/lib/**\"",
     "lint": "eslint . --ignore-path .gitignore --color --format=table",
     "lint:fix": "yarn lint --fix",
