@@ -263,5 +263,4 @@ pub mod bls;
 #[cfg(any(target_os = "android", feature = "java"))]
 pub mod java;
 
-#[cfg(any(feature = "node"))]
-pub mod node;
+pub mod wrappers;
