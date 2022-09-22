@@ -7,24 +7,24 @@ edition = "2018"
 exclude = ["artifacts.json", "index.node"]
 
 [lib]
-name = "ffi_bbs_signatures"
+name = "bbs"
 crate-type = ["staticlib", "cdylib"]
 
 [features]
 default = ["node"]
 java = ["jni"]
-node = ["neon", "ffi-support"]
-c = ["ffi-support"]
+node = ["neon"]
+c = []
 
 [build-dependencies]
 neon-build = "0.10.1"
-cbindgen ="0.24.3"
+cbindgen = "0.24.3"
 
 [dependencies]
 arrayref = "0.3"
 base64 = "0.13.0"
 bbs = "0.4"
-ffi-support = { version = "0.4", optional = true }
+ffi-support = "0.4"
 hkdf = "0.8"
 jni = { version = "0.19", optional = true }
 lazy_static = "1.4"
