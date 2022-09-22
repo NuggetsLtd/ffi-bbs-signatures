@@ -252,6 +252,8 @@ fn gen_sk(msg: &[u8]) -> Fr {
 
 #[macro_use]
 mod macros;
+
+#[cfg(any(target_os = "android", feature = "java"))]
 pub mod bbs_blind_commitment;
 pub mod bbs_blind_sign;
 pub mod bbs_create_proof;
@@ -260,7 +262,6 @@ pub mod bbs_verify_proof;
 pub mod bbs_verify_sign_proof;
 pub mod bls;
 
-#[cfg(any(target_os = "android", feature = "java"))]
-pub mod java;
+mod rust_bbs;
 
 pub mod wrappers;
