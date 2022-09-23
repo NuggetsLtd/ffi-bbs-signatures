@@ -3,11 +3,14 @@ use serde::{Deserialize, Serialize};
 use bbs::prelude::{
   ProofNonce,
   SignatureMessage,
+  SecretKey,
   PublicKey,
   Prover,
   BBSError,
   BlindSignatureContext,
   SignatureBlinding,
+  Commitment,
+  BlindSignature,
 };
 
 #[derive(Serialize, Deserialize)]
@@ -61,4 +64,24 @@ pub fn rust_bbs_verify_blind_signature_proof(
     Ok(b) => Ok(b),
     Err(_) => Ok(false),
   }
+}
+
+#[allow(dead_code)]
+pub fn rust_bbs_blind_sign(
+  commitment: &Commitment,
+  messages: &BTreeMap<usize, SignatureMessage>,
+  secret_key: &SecretKey,
+  public_key: &PublicKey,
+) -> Result<BlindSignature, BBSError> {
+  // check public key is valid
+  if public_key.validate().is_err() {
+      panic!("Invalid public key");
+  }
+
+  BlindSignature::new(
+    commitment,
+    messages,
+    secret_key,
+    public_key
+  )
 }
