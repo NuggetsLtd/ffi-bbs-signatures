@@ -74,6 +74,20 @@ macro_rules! cast_to_number {
   }};
 }
 
+macro_rules! cast_to_unsigned_integer {
+  ($cx:expr, $field:expr, $val:expr) => {{
+      let zero: f64 = 0 as f64;
+
+      let value: f64 = $val.downcast::<JsNumber>().unwrap_or($cx.number(-1)).value();
+
+      if value < zero {
+          panic!("{} cannot be negative: {}", $field, value);
+      }
+
+      value as u64
+  }};
+}
+
 macro_rules! obj_property_to_vec {
     ($cx:expr, $obj:expr, $field:expr) => {{
         let arr: Handle<JsArray> = $obj.get($cx, $field)?;

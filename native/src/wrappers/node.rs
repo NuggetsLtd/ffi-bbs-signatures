@@ -5,7 +5,11 @@ use bbs::prelude::*;
 use neon::prelude::*;
 use neon::result::Throw;
 use std::collections::{BTreeMap,BTreeSet};
-
+use crate::rust_bbs::{
+  BlindingContext,
+  rust_bbs_blind_signature_commitment,
+  rust_bbs_verify_blind_signature_proof,
+};
 use crate::{
   bls_generate_blinded_g1_key,
   bls_generate_blinded_g2_key,
@@ -540,8 +544,12 @@ fn bitvector_to_revealed(data: &[u8]) -> BTreeSet<usize> {
 /// values.
 fn node_bbs_blind_signature_commitment(mut cx: FunctionContext) -> JsResult<JsObject> {
   let bcx = extract_blinding_context(&mut cx)?;
-  let (bcx, bf) =
-      Prover::new_blind_signature_context(&bcx.public_key, &bcx.messages, &bcx.nonce).unwrap();
+
+  let (bcx, bf) = match rust_bbs_blind_signature_commitment(&bcx) {
+    Ok((bcx, bf)) => (bcx, bf),
+    Err(error) => panic!("Failed to generate blind signature commitment: {}", error)
+  };
+
   get_blind_commitment(cx, bcx, bf)
 }
 
@@ -611,7 +619,7 @@ fn extract_blinding_context(cx: &mut FunctionContext) -> Result<BlindingContext,
 
   let nonce = ProofNonce::hash(
       &(nonce.map_or_else(
-          || b"bbs+nodejswrapper".to_vec(),
+          || b"bbs+rustffiwrapper".to_vec(),
           |m| m,
       )),
   );
@@ -621,12 +629,6 @@ fn extract_blinding_context(cx: &mut FunctionContext) -> Result<BlindingContext,
       messages,
       nonce,
   })
-}
-
-struct BlindingContext {
-  public_key: PublicKey,
-  messages: BTreeMap<usize, SignatureMessage>,
-  nonce: ProofNonce,
 }
 
 /// Verify the proof of hidden messages and commitment send from calling
@@ -653,7 +655,7 @@ fn node_bbs_verify_blind_signature_proof(mut cx: FunctionContext) -> JsResult<Js
   let nonce_str = obj_property_to_opt_slice!(&mut cx, js_obj, "nonce");
   let nonce = ProofNonce::hash(
       &(nonce_str.map_or_else(
-          || b"bbs+nodejswrapper".to_vec(),
+          || b"bbs+rustffiwrapper".to_vec(),
           |m| m,
       )),
   );
@@ -676,30 +678,15 @@ fn node_bbs_verify_blind_signature_proof(mut cx: FunctionContext) -> JsResult<Js
       &obj_property_to_slice!(&mut cx, js_obj, "proofOfHiddenMessages")
   ));
 
-  let hidden = obj_property_to_vec!(&mut cx, js_obj, "blinded");
-  let mut messages: BTreeSet<usize> = (0..public_key.message_count()).collect();
-  let message_count = public_key.message_count() as f64;
+  let blinded = obj_property_to_vec!(&mut cx, js_obj, "blinded").into_iter().map(|b| cast_to_unsigned_integer!(cx, "blinded", b)).collect();
 
-  for i in 0..hidden.len() {
-      let index = cast_to_number!(cx, hidden[i]);
-      if index < 0f64 || index > message_count {
-          panic!(
-              "Index is out of bounds. Must be between {} and {}: found {}",
-              0,
-              public_key.message_count(),
-              index
-          );
-      }
-      messages.remove(&(index as usize));
-  }
-
-  let ctx = BlindSignatureContext {
+  let commitment_context = BlindSignatureContext {
       commitment,
       challenge_hash,
       proof_of_hidden_messages,
   };
 
-  match ctx.verify(&messages, &public_key, &nonce) {
+  match rust_bbs_verify_blind_signature_proof(&commitment_context, public_key, blinded, nonce) {
       Ok(b) => Ok(cx.boolean(b)),
       Err(_) => Ok(cx.boolean(false)),
   }
