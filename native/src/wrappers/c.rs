@@ -6,7 +6,8 @@ pub mod ffi;
 use bbs::prelude::*;
 use crate::rust_bbs::{
   BlindingContext,
-  rust_bbs_blind_signature_commitment
+  rust_bbs_blind_signature_commitment,
+  rust_bbs_verify_blind_signature_proof,
 };
 use std::os::raw::c_char;
 use serde_json::{Value, json};
@@ -120,5 +121,114 @@ pub unsafe extern "C" fn bbs_blind_signature_commitment(
       }
     },
     Err(error) => { handle_err!(format!("Failed to generate blind signature commitment: {}", error), json_string); }
+  }
+}
+
+/// Verify Blind Signature Commitment Context
+///
+/// # SAFETY
+/// The `json_string.ptr` pointer needs to follow the same safety requirements
+/// as Rust's `std::ffi::CStr::from_ptr`
+#[no_mangle]
+pub unsafe extern "C" fn bbs_verify_blind_signature_proof(
+  commitment_context: ffi::ByteArray,
+  json_string: &mut JsonString,
+) -> i32 {
+  // convert JSON string to JSON
+  let commitment_context_json: Value = match String::from_utf8(commitment_context.to_vec()) {
+    Ok(commitment_context_string) => {
+      match serde_json::from_str(&commitment_context_string) {
+        Ok(commitment_context) => commitment_context,
+        Err(_) => { handle_err!("Failed parsing JSON for commitment context", json_string); }
+      }
+    },
+    Err(_) => { handle_err!("Commitment context not set", json_string); }
+  };
+
+  // convert 'commitment' base64 string to `Commitment` instance
+  let commitment;
+  match commitment_context_json["commitment"].as_str() {
+    Some(commitment_b64) => {
+      let commitment_b64 = base64::decode(commitment_b64).unwrap().to_vec();
+      commitment = Commitment::from(*array_ref![
+        commitment_b64,
+        0,
+        G1_COMPRESSED_SIZE
+      ]);
+    },
+    None => { handle_err!("Property not set: 'commitment'", json_string); }
+  }
+
+  // convert 'challenge_hash' base64 string to `ProofChallenge` instance
+  let challenge_hash;
+  match commitment_context_json["challenge_hash"].as_str() {
+    Some(challenge_hash_b64) => {
+      let challenge_hash_b64 = base64::decode(challenge_hash_b64).unwrap().to_vec();
+      challenge_hash = ProofChallenge::from(*array_ref![
+        challenge_hash_b64,
+        0,
+        FR_COMPRESSED_SIZE
+      ]);
+    },
+    None => { handle_err!("Property not set: 'challenge_hash'", json_string); }
+  }
+
+  // convert public key base64 string to `PublicKey` instance
+  let public_key = match commitment_context_json["public_key"].as_str() {
+    Some(public_key) => PublicKey::from_bytes_compressed_form(base64::decode(public_key).unwrap().as_slice()).unwrap(),
+    None => { handle_err!("Property not set: 'public_key'", json_string); }
+  };
+
+  // convert public key base64 string to `PublicKey` instance
+  let proof_of_hidden_messages = match commitment_context_json["proof_of_hidden_messages"].as_str() {
+    Some(proof_of_hidden_messages) => ProofG1::from_bytes_compressed_form(base64::decode(proof_of_hidden_messages).unwrap().as_slice()).unwrap(),
+    None => { handle_err!("Property not set: 'proof_of_hidden_messages'", json_string); }
+  };
+  
+  // map `blinded` serde array values to Vec
+  let blinded: Vec<u64> = match commitment_context_json["blinded"].as_array() {
+    Some(blinded) => blinded.into_iter().map(|b| match b.as_u64() {
+      Some(index) => index,
+      None => { handle_err!("Blinded message indexes must be unsigned integer", json_string); }
+    }).collect(),
+    None => { handle_err!("Blinded message indexes array not set", json_string); }
+  };
+
+  // convert nonce base64 string to `ProofNonce` instance
+  let nonce = match commitment_context_json["nonce"].as_str() {
+    Some(nonce) => ProofNonce::hash(base64::decode(nonce).unwrap().as_slice()),
+    None => ProofNonce::hash(b"bbs+rustffiwrapper".to_vec())
+  };
+
+  let commitment_context = BlindSignatureContext {
+    commitment,
+    proof_of_hidden_messages,
+    challenge_hash,
+  };
+
+  match rust_bbs_verify_blind_signature_proof(&commitment_context, public_key, blinded, nonce) {
+    Ok(verified) => {
+      let verification_outcome = json!({
+        "verified": verified
+      });
+
+      // Serialize verification outcome to JSON string
+      match serde_json::to_string(&verification_outcome) {
+        Ok(mut verification_outcome_string) => {
+          // add null terminator (for C-string)
+          verification_outcome_string.push('\0');
+    
+          // box the string, so string isn't de-allocated on leaving the scope of this fn
+          let boxed: Box<str> = verification_outcome_string.into_boxed_str();
+        
+          // set json_string pointer to boxed verification_outcome_string
+          json_string.ptr = Box::into_raw(boxed).cast();
+    
+          0
+        },
+        Err(_) => { handle_err!("Failed to stringify verification outcome", json_string); }
+      }
+    },
+    Err(_) => { handle_err!("Unable to verify commitment context", json_string); }
   }
 }
