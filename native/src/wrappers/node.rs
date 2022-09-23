@@ -9,6 +9,7 @@ use crate::rust_bbs::{
   BlindingContext,
   rust_bbs_blind_signature_commitment,
   rust_bbs_verify_blind_signature_proof,
+  rust_bbs_blind_sign,
 };
 use crate::{
   bls_generate_blinded_g1_key,
@@ -593,7 +594,7 @@ fn extract_blinding_context(cx: &mut FunctionContext) -> Result<BlindingContext,
 
   if hidden.len() != message_bytes.len() {
       panic!(
-          "hidden length is not the same as messages: {} != {}",
+          "hidden length is not the same as messages length: {} != {}",
           hidden.len(),
           message_bytes.len()
       );
@@ -711,13 +712,13 @@ fn node_bbs_verify_blind_signature_proof(mut cx: FunctionContext) -> JsResult<Js
 /// `return`: `ArrayBuffer` the blinded signature. Recipient must unblind before it is valid
 fn node_bbs_blind_sign(mut cx: FunctionContext) -> JsResult<JsArrayBuffer> {
   let bcx = extract_blind_signature_context(&mut cx)?;
-  let signature = handle_err!(BlindSignature::new(
-      &bcx.commitment,
-      &bcx.messages,
-      &bcx.secret_key,
-      &bcx.public_key
-  ));
-  let result = slice_to_js_array_buffer!(&signature.to_bytes_compressed_form()[..], cx);
+
+  let blind_signature = match rust_bbs_blind_sign(&bcx.commitment, &bcx.messages, &bcx.secret_key, &bcx.public_key) {
+    Ok(blind_signature) => blind_signature,
+    Err(error) => panic!("Failed to generate blind signature commitment: {}", error)
+  };
+
+  let result = slice_to_js_array_buffer!(&blind_signature.to_bytes_compressed_form()[..], cx);
   Ok(result)
 }
 
