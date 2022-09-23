@@ -64,7 +64,7 @@ pub unsafe extern "C" fn bbs_blind_signature_commitment(
   // convert nonce base64 string to `ProofNonce` instance
   let nonce = match blinding_context_json["nonce"].as_str() {
     Some(nonce) => ProofNonce::hash(base64::decode(nonce).unwrap().as_slice()),
-    None => { handle_err!("Nonce not set", json_string); }
+    None => ProofNonce::hash(b"bbs+rustffiwrapper".to_vec())
   };
   
   // convert messages base64 string to array of `SignatureMessage` instances
