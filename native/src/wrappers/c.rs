@@ -62,6 +62,14 @@ pub unsafe extern "C" fn bbs_blind_signature_commitment(
     None => { handle_err!("Messages data array not set", json_string); }
   };
 
+  if blinded.len() != messages_to_blind.len() {
+    handle_err!(format!(
+      "hidden length is not the same as messages length: {} != {}",
+      blinded.len(),
+      messages_to_blind.len()
+    ), json_string);
+  }
+
   // convert nonce base64 string to `ProofNonce` instance
   let nonce = match blinding_context_json["nonce"].as_str() {
     Some(nonce) => ProofNonce::hash(base64::decode(nonce).unwrap().as_slice()),
