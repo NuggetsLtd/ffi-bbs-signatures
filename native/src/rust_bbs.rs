@@ -11,6 +11,7 @@ use bbs::prelude::{
   SignatureBlinding,
   Commitment,
   BlindSignature,
+  Signature,
 };
 
 #[derive(Serialize, Deserialize)]
@@ -84,4 +85,26 @@ pub fn rust_bbs_blind_sign(
     secret_key,
     public_key
   )
+}
+
+#[allow(dead_code)]
+pub fn rust_bbs_unblind_signature(
+  blind_signature: &BlindSignature,
+  blinding_factor: &SignatureBlinding,
+) -> Signature {
+  blind_signature.to_unblinded(&blinding_factor)
+}
+
+#[allow(dead_code)]
+pub fn rust_bbs_verify(
+  signature: &Signature,
+  messages: &Vec<SignatureMessage>,
+  public_key: &PublicKey,
+) -> Result<bool, BBSError> {
+  // check public key is valid
+  if public_key.validate().is_err() {
+      panic!("Invalid key");
+  }
+
+  signature.verify(messages.as_slice(), public_key)
 }
