@@ -10,6 +10,7 @@ use crate::rust_bbs::{
   rust_bbs_verify_blind_signature_proof,
   rust_bbs_blind_sign,
   rust_bbs_unblind_signature,
+  rust_bbs_verify,
 };
 use std::os::raw::c_char;
 use serde_json::{Value, json};
@@ -440,3 +441,84 @@ pub unsafe extern "C" fn bbs_get_unblinded_signature(
   }
 }
 
+/// Verify signature
+///
+/// # SAFETY
+/// The `json_string.ptr` pointer needs to follow the same safety requirements
+/// as Rust's `std::ffi::CStr::from_ptr`
+#[no_mangle]
+pub unsafe extern "C" fn bbs_verify(
+  verify_signature_context: ffi::ByteArray,
+  json_string: &mut JsonString,
+) -> i32 {
+  // convert JSON string to JSON
+  let verify_signature_context_json: Value = match String::from_utf8(verify_signature_context.to_vec()) {
+    Ok(verify_signature_context_string) => {
+      match serde_json::from_str(&verify_signature_context_string) {
+        Ok(verify_signature_context) => verify_signature_context,
+        Err(_) => { handle_err!("Failed parsing JSON for verify signature context", json_string); }
+      }
+    },
+    Err(_) => { handle_err!("Verify signature context not set", json_string); }
+  };
+
+  // convert public key base64 string to `PublicKey` instance
+  let public_key = match verify_signature_context_json["public_key"].as_str() {
+    Some(public_key) => PublicKey::from_bytes_compressed_form(base64::decode(public_key).unwrap().as_slice()).unwrap(),
+    None => { handle_err!("Property not set: 'public_key'", json_string); }
+  };
+
+  // convert 'blind_signature' base64 string to `BlindSignature` instance
+  let signature;
+  match verify_signature_context_json["signature"].as_str() {
+    Some(signature_b64) => {
+      let signature_b64 = base64::decode(signature_b64).unwrap().to_vec();
+      signature = Signature::from(*array_ref![
+        signature_b64,
+        0,
+        SIGNATURE_COMPRESSED_SIZE
+      ]);
+    },
+    None => { handle_err!("Property not set: 'signature'", json_string); }
+  };
+
+  // get `messages` values as array
+  let messages_array = match verify_signature_context_json["messages"].as_array() {
+    Some(messages) => messages,
+    None => { handle_err!("Property not set: 'messages'", json_string); }
+  };
+
+  // convert messages base64 string to array of `SignatureMessage` instances
+  let mut messages = Vec::new();
+
+  for i in 0..messages_array.len() {
+      // add message to Vec
+      messages.push(SignatureMessage::hash(base64::decode(messages_array[i].as_str().unwrap()).unwrap().as_slice()));
+  }
+
+  match rust_bbs_verify(&signature, &messages, &public_key) {
+    Ok(verified) => {
+      let verify_outcome = json!({
+        "verified": verified,
+      });
+    
+      // Serialize verification outcome to JSON string
+      match serde_json::to_string(&verify_outcome) {
+        Ok(mut verify_outcome_string) => {
+          // add null terminator (for C-string)
+          verify_outcome_string.push('\0');
+    
+          // box the string, so string isn't de-allocated on leaving the scope of this fn
+          let boxed: Box<str> = verify_outcome_string.into_boxed_str();
+        
+          // set json_string pointer to boxed verify_outcome_string
+          json_string.ptr = Box::into_raw(boxed).cast();
+    
+          0
+        },
+        Err(_) => { handle_err!("Failed to stringify verification outcome", json_string); }
+      }
+    },
+    Err(_) => { handle_err!("Unable to verify messages", json_string); }
+  }
+}
