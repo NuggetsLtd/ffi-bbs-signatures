@@ -10,6 +10,8 @@ use crate::rust_bbs::{
   rust_bbs_blind_signature_commitment,
   rust_bbs_verify_blind_signature_proof,
   rust_bbs_blind_sign,
+  rust_bbs_unblind_signature,
+  rust_bbs_verify,
 };
 use crate::{
   bls_generate_blinded_g1_key,
@@ -221,10 +223,6 @@ fn node_bbs_verify(mut cx: FunctionContext) -> JsResult<JsBoolean> {
   let pk_bytes = obj_property_to_slice!(&mut cx, js_obj, "publicKey");
   let pk = PublicKey::from_bytes_compressed_form(pk_bytes.as_slice()).unwrap();
 
-  if pk.validate().is_err() {
-      panic!("Invalid key");
-  }
-
   let message_bytes = obj_property_to_vec!(&mut cx, js_obj, "messages");
   let mut messages = Vec::new();
   for i in 0..message_bytes.len() {
@@ -232,7 +230,7 @@ fn node_bbs_verify(mut cx: FunctionContext) -> JsResult<JsBoolean> {
       messages.push(SignatureMessage::hash(message));
   }
 
-  match signature.verify(messages.as_slice(), &pk) {
+  match rust_bbs_verify(&signature, &messages, &pk) {
       Ok(b) => Ok(cx.boolean(b)),
       Err(_) => Ok(cx.boolean(false)),
   }
@@ -800,18 +798,17 @@ struct BlindSignContext {
 /// `blindingFactor`: `ArrayBuffer` length must be `MESSAGE_SIZE`
 /// `return`: `ArrayBuffer` the unblinded signature
 fn node_bbs_get_unblinded_signature(mut cx: FunctionContext) -> JsResult<JsArrayBuffer> {
-    let sig = BlindSignature::from(arg_to_fixed_array!(cx, 0, 0, SIGNATURE_COMPRESSED_SIZE));
-    let bf = SignatureBlinding::from(arg_to_fixed_array!(
+    let blind_signature = BlindSignature::from(arg_to_fixed_array!(cx, 0, 0, SIGNATURE_COMPRESSED_SIZE));
+    let blinding_factor = SignatureBlinding::from(arg_to_fixed_array!(
         cx,
         1,
         0,
         FR_COMPRESSED_SIZE
     ));
 
-    let sig = sig.to_unblinded(&bf);
+    let signature = rust_bbs_unblind_signature(&blind_signature, &blinding_factor);
 
-    let result = slice_to_js_array_buffer!(&sig.to_bytes_compressed_form()[..], cx);
-    Ok(result)
+    Ok(slice_to_js_array_buffer!(&signature.to_bytes_compressed_form()[..], cx))
 }
 
 register_module!(mut cx, {

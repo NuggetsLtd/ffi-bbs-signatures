@@ -9,6 +9,8 @@ use crate::rust_bbs::{
   rust_bbs_blind_signature_commitment,
   rust_bbs_verify_blind_signature_proof,
   rust_bbs_blind_sign,
+  rust_bbs_unblind_signature,
+  rust_bbs_verify,
 };
 use std::os::raw::c_char;
 use serde_json::{Value, json};
@@ -363,5 +365,160 @@ pub unsafe extern "C" fn bbs_blind_sign(
       }
     },
     Err(_) => { handle_err!("Unable to blind sign messages", json_string); }
+  }
+}
+
+/// Unblind blinded signature
+///
+/// # SAFETY
+/// The `json_string.ptr` pointer needs to follow the same safety requirements
+/// as Rust's `std::ffi::CStr::from_ptr`
+#[no_mangle]
+pub unsafe extern "C" fn bbs_get_unblinded_signature(
+  blind_signature_context: ffi::ByteArray,
+  json_string: &mut JsonString,
+) -> i32 {
+  // convert JSON string to JSON
+  let blind_signature_context_json: Value = match String::from_utf8(blind_signature_context.to_vec()) {
+    Ok(blind_signature_context_string) => {
+      match serde_json::from_str(&blind_signature_context_string) {
+        Ok(blind_signature_context) => blind_signature_context,
+        Err(_) => { handle_err!("Failed parsing JSON for blind signature context", json_string); }
+      }
+    },
+    Err(_) => { handle_err!("Blind signature context not set", json_string); }
+  };
+
+  // convert 'blind_signature' base64 string to `BlindSignature` instance
+  let blind_signature;
+  match blind_signature_context_json["blind_signature"].as_str() {
+    Some(blind_signature_b64) => {
+      let blind_signature_b64 = base64::decode(blind_signature_b64).unwrap().to_vec();
+      blind_signature = BlindSignature::from(*array_ref![
+        blind_signature_b64,
+        0,
+        SIGNATURE_COMPRESSED_SIZE
+      ]);
+    },
+    None => { handle_err!("Property not set: 'blind_signature'", json_string); }
+  };
+
+  // convert 'blinding_factor' base64 string to `SignatureBlinding` instance
+  let blinding_factor;
+  match blind_signature_context_json["blinding_factor"].as_str() {
+    Some(blinding_factor_b64) => {
+      let blinding_factor_b64 = base64::decode(blinding_factor_b64).unwrap().to_vec();
+      blinding_factor = SignatureBlinding::from(*array_ref![
+        blinding_factor_b64,
+        0,
+        FR_COMPRESSED_SIZE
+      ]);
+    },
+    None => { handle_err!("Property not set: 'blinding_factor'", json_string); }
+  };
+
+  let unblinded_signature = rust_bbs_unblind_signature(&blind_signature, &blinding_factor);
+
+  let signature_outcome = json!({
+    "signature": base64::encode(unblinded_signature.to_bytes_compressed_form().as_slice()),
+  });
+
+  // Serialize verification outcome to JSON string
+  match serde_json::to_string(&signature_outcome) {
+    Ok(mut signature_outcome_string) => {
+      // add null terminator (for C-string)
+      signature_outcome_string.push('\0');
+
+      // box the string, so string isn't de-allocated on leaving the scope of this fn
+      let boxed: Box<str> = signature_outcome_string.into_boxed_str();
+    
+      // set json_string pointer to boxed signature_outcome_string
+      json_string.ptr = Box::into_raw(boxed).cast();
+
+      0
+    },
+    Err(_) => { handle_err!("Failed to stringify unblinded signature", json_string); }
+  }
+}
+
+/// Verify signature
+///
+/// # SAFETY
+/// The `json_string.ptr` pointer needs to follow the same safety requirements
+/// as Rust's `std::ffi::CStr::from_ptr`
+#[no_mangle]
+pub unsafe extern "C" fn bbs_verify(
+  verify_signature_context: ffi::ByteArray,
+  json_string: &mut JsonString,
+) -> i32 {
+  // convert JSON string to JSON
+  let verify_signature_context_json: Value = match String::from_utf8(verify_signature_context.to_vec()) {
+    Ok(verify_signature_context_string) => {
+      match serde_json::from_str(&verify_signature_context_string) {
+        Ok(verify_signature_context) => verify_signature_context,
+        Err(_) => { handle_err!("Failed parsing JSON for verify signature context", json_string); }
+      }
+    },
+    Err(_) => { handle_err!("Verify signature context not set", json_string); }
+  };
+
+  // convert public key base64 string to `PublicKey` instance
+  let public_key = match verify_signature_context_json["public_key"].as_str() {
+    Some(public_key) => PublicKey::from_bytes_compressed_form(base64::decode(public_key).unwrap().as_slice()).unwrap(),
+    None => { handle_err!("Property not set: 'public_key'", json_string); }
+  };
+
+  // convert 'blind_signature' base64 string to `BlindSignature` instance
+  let signature;
+  match verify_signature_context_json["signature"].as_str() {
+    Some(signature_b64) => {
+      let signature_b64 = base64::decode(signature_b64).unwrap().to_vec();
+      signature = Signature::from(*array_ref![
+        signature_b64,
+        0,
+        SIGNATURE_COMPRESSED_SIZE
+      ]);
+    },
+    None => { handle_err!("Property not set: 'signature'", json_string); }
+  };
+
+  // get `messages` values as array
+  let messages_array = match verify_signature_context_json["messages"].as_array() {
+    Some(messages) => messages,
+    None => { handle_err!("Property not set: 'messages'", json_string); }
+  };
+
+  // convert messages base64 string to array of `SignatureMessage` instances
+  let mut messages = Vec::new();
+
+  for i in 0..messages_array.len() {
+      // add message to Vec
+      messages.push(SignatureMessage::hash(base64::decode(messages_array[i].as_str().unwrap()).unwrap().as_slice()));
+  }
+
+  match rust_bbs_verify(&signature, &messages, &public_key) {
+    Ok(verified) => {
+      let verify_outcome = json!({
+        "verified": verified,
+      });
+    
+      // Serialize verification outcome to JSON string
+      match serde_json::to_string(&verify_outcome) {
+        Ok(mut verify_outcome_string) => {
+          // add null terminator (for C-string)
+          verify_outcome_string.push('\0');
+    
+          // box the string, so string isn't de-allocated on leaving the scope of this fn
+          let boxed: Box<str> = verify_outcome_string.into_boxed_str();
+        
+          // set json_string pointer to boxed verify_outcome_string
+          json_string.ptr = Box::into_raw(boxed).cast();
+    
+          0
+        },
+        Err(_) => { handle_err!("Failed to stringify verification outcome", json_string); }
+      }
+    },
+    Err(_) => { handle_err!("Unable to verify messages", json_string); }
   }
 }

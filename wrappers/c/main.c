@@ -87,6 +87,52 @@ void blindSignMessages(char* blind_sign_context)
   ffi_bbs_signatures_free_json_string(json_string);
 }
 
+void unblindSignature(char* unblind_signature_context)
+{
+  JsonString json_string;
+  ByteArray unblindSignatureContextBuffer;
+
+  // populate blind sign context buffer
+  unblindSignatureContextBuffer.length = strlen(unblind_signature_context);
+  BYTE unblindSignatureContextBufferData[unblindSignatureContextBuffer.length];
+  string2ByteArray(unblind_signature_context, unblindSignatureContextBufferData);
+  unblindSignatureContextBuffer.data = unblindSignatureContextBufferData;
+
+  int outcome = bbs_get_unblinded_signature(unblindSignatureContextBuffer, &json_string);
+
+  if (outcome == 0)
+  {
+    printf("\nUnblind Signature:\n%s\n\n", json_string.ptr);
+  } else {
+    printf("\nUnblind Signature Error:\n%s\n\n", json_string.ptr);
+  }
+
+  ffi_bbs_signatures_free_json_string(json_string);
+}
+
+void verifySignature(char* verify_signature_context)
+{
+  JsonString json_string;
+  ByteArray verifySignatureContextBuffer;
+
+  // populate blind sign context buffer
+  verifySignatureContextBuffer.length = strlen(verify_signature_context);
+  BYTE verifySignatureContextBufferData[verifySignatureContextBuffer.length];
+  string2ByteArray(verify_signature_context, verifySignatureContextBufferData);
+  verifySignatureContextBuffer.data = verifySignatureContextBufferData;
+
+  int outcome = bbs_verify(verifySignatureContextBuffer, &json_string);
+
+  if (outcome == 0)
+  {
+    printf("\nVerify Signature:\n%s\n\n", json_string.ptr);
+  } else {
+    printf("\nVerify Signature Error:\n%s\n\n", json_string.ptr);
+  }
+
+  ffi_bbs_signatures_free_json_string(json_string);
+}
+
 int main()
 {
   // ----- Blind Signature Commitment -------------------------------------------------------------
@@ -160,4 +206,27 @@ int main()
   char* blind_sign_context_missing_commitment = "{\"secret_key\":\"Cm550dHeqo5I/dVC/bXD9s5Cx8vnyhV/gm7KO5UuviE=\",\"public_key\":\"pQro1uqpvUPM31sr+jHffz7+KJIpA3kFen4SoKATURRgo7pk582aaqIxSinWsgHDB9j9dwxYRbC3q2ZmICR2OVMX3FHW9LZV2QAauTYFn7gEra1BSeKhdKDpzBxPjI36rAn7qKBJ+zoJjiSDxFiBlgyjPKRQzw8R6VHRJ62cUPEBUxx8mk1FpuDBdeXA8NpgAAAAA5PIYj94+VZFiDLKmgZyHmxOlO7EotGWxuSh76d51g3LhfLgz/ZvY647AiDghQwuGY5WCek2c+ag44eKZnSs3qXUCzRZsKo+r2ax3iZoaVI0+y7U4v1T+ak6CNwiLEwTvrHv85q7BeuXiARgPPsjtGuOKpHguUYfRgPGnALw6UYWTwpqhwo2/uv5IRqjVgwEkA==\",\"known\":[2],\"messages\":[\"bWVzc2FnZTM=\"]}";
   blindSignMessages(blind_sign_context_missing_commitment);
 
+
+  // ----- Unblind Signature ----------------------------------------------------------------------
+
+  char* blind_signature_context = "{\"blind_signature\":\"qvNzrFrZRXWjx82CC16qUO3LhNJ75R+wjyMSwCiWgBSABOOqtNoZnMUdWUPzu9t8BNs86kNGH5yBXPyIVRB6yxgkKx1UjgFy6QIxwpe0YBBqOFik1G94L0FJPayHRYb4cQPTBUzDtL6j+DR4h5BxIg==\",\"blinding_factor\":\"LOwrFYCZgVHuKp29PYrN7SXcki1ReqbsS7QKxHgGzZo=\"}";
+  unblindSignature(blind_signature_context);
+
+
+  // ----- Verify Signature -----------------------------------------------------------------------
+
+  char* verify_signature_context_empty = "";
+  verifySignature(verify_signature_context_empty);
+
+  char* verify_signature_context_empty_obj = "{}";
+  verifySignature(verify_signature_context_empty_obj);
+
+  char* verify_signature_context_missing_signature = "{\"public_key\":\"pQro1uqpvUPM31sr+jHffz7+KJIpA3kFen4SoKATURRgo7pk582aaqIxSinWsgHDB9j9dwxYRbC3q2ZmICR2OVMX3FHW9LZV2QAauTYFn7gEra1BSeKhdKDpzBxPjI36rAn7qKBJ+zoJjiSDxFiBlgyjPKRQzw8R6VHRJ62cUPEBUxx8mk1FpuDBdeXA8NpgAAAAA5PIYj94+VZFiDLKmgZyHmxOlO7EotGWxuSh76d51g3LhfLgz/ZvY647AiDghQwuGY5WCek2c+ag44eKZnSs3qXUCzRZsKo+r2ax3iZoaVI0+y7U4v1T+ak6CNwiLEwTvrHv85q7BeuXiARgPPsjtGuOKpHguUYfRgPGnALw6UYWTwpqhwo2/uv5IRqjVgwEkA==\"}";
+  verifySignature(verify_signature_context_missing_signature);
+
+  char* verify_signature_context_missing_messages = "{\"public_key\":\"pQro1uqpvUPM31sr+jHffz7+KJIpA3kFen4SoKATURRgo7pk582aaqIxSinWsgHDB9j9dwxYRbC3q2ZmICR2OVMX3FHW9LZV2QAauTYFn7gEra1BSeKhdKDpzBxPjI36rAn7qKBJ+zoJjiSDxFiBlgyjPKRQzw8R6VHRJ62cUPEBUxx8mk1FpuDBdeXA8NpgAAAAA5PIYj94+VZFiDLKmgZyHmxOlO7EotGWxuSh76d51g3LhfLgz/ZvY647AiDghQwuGY5WCek2c+ag44eKZnSs3qXUCzRZsKo+r2ax3iZoaVI0+y7U4v1T+ak6CNwiLEwTvrHv85q7BeuXiARgPPsjtGuOKpHguUYfRgPGnALw6UYWTwpqhwo2/uv5IRqjVgwEkA==\",\"signature\":\"jO8qDBGQsK/Zl6rAx+aBuUe0c6hE/G2Apyp2N8CH2icZT6Nyq1F9e0lBaFUpRBiqY9NwiXinApEfu6G08ZzTjA9AsZW1G1y0EhEZ0pjrbLYq2kubBG8zzIJafdpAWVwpgDMypevMw48Ex59Z9MVFdA==\"}";
+  verifySignature(verify_signature_context_missing_messages);
+
+  char* verify_signature_context = "{\"public_key\":\"pQro1uqpvUPM31sr+jHffz7+KJIpA3kFen4SoKATURRgo7pk582aaqIxSinWsgHDB9j9dwxYRbC3q2ZmICR2OVMX3FHW9LZV2QAauTYFn7gEra1BSeKhdKDpzBxPjI36rAn7qKBJ+zoJjiSDxFiBlgyjPKRQzw8R6VHRJ62cUPEBUxx8mk1FpuDBdeXA8NpgAAAAA5PIYj94+VZFiDLKmgZyHmxOlO7EotGWxuSh76d51g3LhfLgz/ZvY647AiDghQwuGY5WCek2c+ag44eKZnSs3qXUCzRZsKo+r2ax3iZoaVI0+y7U4v1T+ak6CNwiLEwTvrHv85q7BeuXiARgPPsjtGuOKpHguUYfRgPGnALw6UYWTwpqhwo2/uv5IRqjVgwEkA==\",\"signature\":\"qvNzrFrZRXWjx82CC16qUO3LhNJ75R+wjyMSwCiWgBSABOOqtNoZnMUdWUPzu9t8BNs86kNGH5yBXPyIVRB6yxgkKx1UjgFy6QIxwpe0YBAjNtxnK2t8OPw6A2G7LnzgQyLBL54//6vvrD89/5c+uw==\",\"messages\":[\"bWVzc2FnZTE=\",\"bWVzc2FnZTI=\",\"bWVzc2FnZTM=\"]}";
+  verifySignature(verify_signature_context);
 }
