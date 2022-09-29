@@ -1,10 +1,17 @@
-// pub mod crate::bbs_blind_commitment;
-// pub mod crate::bbs_blind_sign;
-// pub mod crate::bbs_create_proof;
-// pub mod crate::bbs_sign;
-// pub mod crate::bbs_verify_proof;
-// pub mod crate::bbs_verify_sign_proof;
-// pub mod crate::bls;
+#[macro_use]
+mod macros;
+
+use bbs::prelude::*;
+use crate::rust_bbs::{
+  BlindingContext,
+  rust_bbs_blind_signature_commitment,
+  rust_bbs_verify_blind_signature_proof,
+  rust_bbs_blind_sign,
+  rust_bbs_unblind_signature,
+  rust_bbs_verify,
+};
+use serde_json::{Value, json};
+use std::collections::{BTreeMap};
 
 // This is the interface to the JVM that we'll
 // call the majority of our methods on.
@@ -13,12 +20,12 @@ use jni::JNIEnv;
 // These objects are what you should use as arguments to your native function.
 // They carry extra lifetime information to prevent them escaping this context
 // and getting used after being GC'd.
-use jni::objects::{JObject, JString};
+use jni::objects::{JClass, JObject, JString};
 
 // This is just a pointer. We'll be returning it from our function.
 // We can't return one of the objects with lifetime information because the
 // lifetime checker won't let us.
-use jni::sys::{jbyte, jbyteArray, jint, jlong};
+use jni::sys::{jstring, jbyte, jbyteArray, jint, jlong};
 
 use crate::bbs_blind_commitment::{
     bbs_blind_commitment_context_add_message_bytes,
@@ -1206,4 +1213,111 @@ pub extern "system" fn Java_bbs_signatures_Bbs_bbs_1get_1total_1messages_1count_
             }
         }
     }
+}
+
+#[allow(non_snake_case)]
+#[no_mangle]
+pub extern "system" fn Java_life_nuggets_rs_Bbs_bbs_1blind_1signature_1commitment(
+  env: JNIEnv,
+  _class: JClass,
+  blinding_commitment: jbyteArray,
+) -> jstring {
+  let blinding_commitment_bytes;
+  match env.convert_byte_array(blinding_commitment) {
+      Err(_) => panic!("Failed converting `blinding_commitment` to byte array"),
+      Ok(bc) => blinding_commitment_bytes = bc,
+  };
+  
+  // convert JSON string to JSON
+  let blinding_context_json: Value = match String::from_utf8(blinding_commitment_bytes.to_vec()) {
+    Ok(blinding_context_string) => {
+      match serde_json::from_str(&blinding_context_string) {
+        Ok(blinding_context_json) => blinding_context_json,
+        Err(_) => { handle_err!("Failed parsing JSON for blinding context", env); }
+      }
+    },
+    Err(_) => { handle_err!("Blinding context not set", env); }
+  };
+
+  // convert public key base64 string to `PublicKey` instance
+  let public_key = match blinding_context_json["public_key"].as_str() {
+    Some(public_key) => PublicKey::from_bytes_compressed_form(base64::decode(public_key).unwrap().as_slice()).unwrap(),
+    None => { handle_err!("Property not set: 'public_key'", env); }
+  };
+
+  // get `blinded` values as array
+  let blinded = match blinding_context_json["blinded"].as_array() {
+    Some(blinded) => blinded,
+    None => { handle_err!("Property not set: 'blinded'", env); }
+  };
+
+  // get `messages` values as array
+  let messages_to_blind = match blinding_context_json["messages"].as_array() {
+    Some(messages) => messages,
+    None => { handle_err!("Property not set: 'messages'", env); }
+  };
+
+  if blinded.len() != messages_to_blind.len() {
+    handle_err!(format!(
+      "hidden length is not the same as messages length: {} != {}",
+      blinded.len(),
+      messages_to_blind.len()
+    ), env);
+  }
+
+  // convert nonce base64 string to `ProofNonce` instance
+  let nonce = match blinding_context_json["nonce"].as_str() {
+    Some(nonce) => ProofNonce::hash(base64::decode(nonce).unwrap().as_slice()),
+    None => ProofNonce::hash(b"bbs+rustffiwrapper".to_vec())
+  };
+  
+  // convert messages base64 string to array of `SignatureMessage` instances
+  let mut messages = BTreeMap::new();
+  let message_count = public_key.message_count() as u64;
+
+  for i in 0..blinded.len() {
+      let index = blinded[i].as_u64().unwrap();
+      if index > message_count {
+        handle_err!(format!(
+          "Index is out of bounds. Must be between {} and {}: found {}",
+          0,
+          public_key.message_count(),
+          index
+        ), env);
+      }
+
+      // add message to tree map
+      messages.insert(index as usize, SignatureMessage::hash(base64::decode(messages_to_blind[i].as_str().unwrap()).unwrap().as_slice()));
+  }
+
+  let bcx = BlindingContext {
+    public_key,
+    messages,
+    nonce
+  };
+
+  // generate blind signature commitment
+  match rust_bbs_blind_signature_commitment(&bcx) {
+    Ok((blinding_context, blinding_factor)) => {
+      let blind_commitment_context = json!({
+        "commitment": base64::encode(blinding_context.commitment.to_bytes_compressed_form().as_slice()),
+        "challenge_hash": base64::encode(blinding_context.challenge_hash.to_bytes_compressed_form().as_slice()),
+        "blinding_factor": base64::encode(blinding_factor.to_bytes_compressed_form().as_slice()),
+        "proof_of_hidden_messages": base64::encode(blinding_context.proof_of_hidden_messages.to_bytes_compressed_form().as_slice()),
+      });
+
+      // Serialize `BlindCommitmentContext` to a JSON string
+      match serde_json::to_string(&blind_commitment_context) {
+        Ok(blind_commitment_context_string) => {
+          let output = env
+              .new_string(blind_commitment_context_string)
+              .expect("Unable to create string from signed data");
+        
+          output.into_inner()
+        },
+        Err(_) => { handle_err!("Failed to stringify 'BlindCommitmentContext'", env); }
+      }
+    },
+    Err(error) => { handle_err!(format!("Failed to generate blind signature commitment: {}", error), env); }
+  }
 }
