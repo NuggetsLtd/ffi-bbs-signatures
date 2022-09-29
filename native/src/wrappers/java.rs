@@ -1449,3 +1449,133 @@ pub extern "system" fn Java_life_nuggets_rs_Bbs_bbs_1verify_1blind_1signature_1p
     Err(_) => { handle_err!("Unable to verify commitment context", env); }
   }
 }
+
+#[allow(non_snake_case)]
+#[no_mangle]
+pub extern "system" fn Java_life_nuggets_rs_Bbs_bbs_1blind_1sign(
+  env: JNIEnv,
+  _class: JClass,
+  blind_sign_context: jbyteArray,
+) -> jstring {
+  let blind_sign_context_bytes;
+  match env.convert_byte_array(blind_sign_context) {
+      Err(_) => panic!("Failed converting `blind_sign_context` to byte array"),
+      Ok(bc) => blind_sign_context_bytes = bc,
+  };
+
+  // convert JSON string to JSON
+  let blind_sign_context_json: Value = match String::from_utf8(blind_sign_context_bytes.to_vec()) {
+    Ok(blind_sign_context_string) => {
+      match serde_json::from_str(&blind_sign_context_string) {
+        Ok(blind_sign_context) => blind_sign_context,
+        Err(_) => { handle_err!("Failed parsing JSON for blind sign context", env); }
+      }
+    },
+    Err(_) => { handle_err!("Blind sign context not set", env); }
+  };
+
+  // convert 'secret_key' base64 string to `SecretKey` instance
+  let secret_key;
+  match blind_sign_context_json["secret_key"].as_str() {
+    Some(secret_key_b64) => {
+      let secret_key_b64 = base64::decode(secret_key_b64).unwrap().to_vec();
+      secret_key = SecretKey::from(*array_ref![
+        secret_key_b64,
+        0,
+        FR_COMPRESSED_SIZE
+      ]);
+    },
+    None => { handle_err!("Property not set: 'secret_key'", env); }
+  }
+
+  // convert public key base64 string to `PublicKey` instance
+  let public_key = match blind_sign_context_json["public_key"].as_str() {
+    Some(public_key) => PublicKey::from_bytes_compressed_form(base64::decode(public_key).unwrap().as_slice()).unwrap(),
+    None => { handle_err!("Property not set: 'public_key'", env); }
+  };
+
+  // map `known` serde array values to Vec
+  let known: Vec<i64> = match blind_sign_context_json["known"].as_array() {
+    Some(known) => known.into_iter().map(|b| match b.as_i64() {
+      Some(index) => index,
+      None => -1,
+    }).collect(),
+    None => { handle_err!("Property not set: 'known'", env); }
+  };
+
+  // get `messages` values as array
+  let messages_visible = match blind_sign_context_json["messages"].as_array() {
+    Some(messages) => messages,
+    None => { handle_err!("Property not set: 'messages'", env); }
+  };
+
+  if known.len() != messages_visible.len() {
+    handle_err!(format!(
+      "known length is not the same as messages length: {} != {}",
+      known.len(),
+      messages_visible.len()
+    ), env);
+  }
+
+  // convert messages base64 string to array of `SignatureMessage` instances
+  let mut messages = BTreeMap::new();
+  let message_count = public_key.message_count() as i64;
+
+  for i in 0..known.len() {
+      let index = known[i];
+      if index < 0 {
+        handle_err!(format!(
+          "Invalid index for 'known'. Must be integer between {} and {}",
+          0,
+          message_count
+        ), env);
+      }
+      if index > message_count {
+        handle_err!(format!(
+          "Index for 'known' is out of bounds. Must be between {} and {}: found {}",
+          0,
+          message_count,
+          index
+        ), env);
+      }
+
+      // add message to tree map
+      messages.insert(index as usize, SignatureMessage::hash(base64::decode(messages_visible[i].as_str().unwrap()).unwrap().as_slice()));
+  }
+
+  // convert 'commitment' base64 string to `Commitment` instance
+  let commitment;
+  match blind_sign_context_json["commitment"].as_str() {
+    Some(commitment_b64) => {
+      let commitment_b64 = base64::decode(commitment_b64).unwrap().to_vec();
+      commitment = Commitment::from(*array_ref![
+        commitment_b64,
+        0,
+        G1_COMPRESSED_SIZE
+      ]);
+    },
+    None => { handle_err!("Property not set: 'commitment'", env); }
+  }
+
+  match rust_bbs_blind_sign(&commitment, &messages, &secret_key, &public_key) {
+    Ok(signature) => {
+      let signature_outcome = json!({
+        "blind_signature": base64::encode(signature.to_bytes_compressed_form().as_slice()),
+      });
+
+      // Serialize verification outcome to JSON string
+      match serde_json::to_string(&signature_outcome) {
+        Ok(signature_outcome_string) => {
+          let output = env
+              .new_string(signature_outcome_string)
+              .expect("Unable to create string from blind signature outcome");
+        
+          output.into_inner()
+        },
+        Err(_) => { handle_err!("Failed to stringify blind signature", env); }
+      }
+    },
+    Err(_) => { handle_err!("Unable to blind sign messages", env); }
+  }
+}
+
