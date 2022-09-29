@@ -1579,3 +1579,73 @@ pub extern "system" fn Java_life_nuggets_rs_Bbs_bbs_1blind_1sign(
   }
 }
 
+#[allow(non_snake_case)]
+#[no_mangle]
+pub extern "system" fn Java_life_nuggets_rs_Bbs_bbs_1get_1unblinded_1signature(
+  env: JNIEnv,
+  _class: JClass,
+  unblind_signature_context: jbyteArray,
+) -> jstring {
+  let unblind_signature_context_bytes;
+  match env.convert_byte_array(unblind_signature_context) {
+      Err(_) => panic!("Failed converting `unblind_signature_context` to byte array"),
+      Ok(bc) => unblind_signature_context_bytes = bc,
+  };
+
+  // convert JSON string to JSON
+  let unblind_signature_context_json: Value = match String::from_utf8(unblind_signature_context_bytes.to_vec()) {
+    Ok(unblind_signature_context_string) => {
+      match serde_json::from_str(&unblind_signature_context_string) {
+        Ok(unblind_signature_context) => unblind_signature_context,
+        Err(_) => { handle_err!("Failed parsing JSON for unblind signature context", env); }
+      }
+    },
+    Err(_) => { handle_err!("Unblind signature context not set", env); }
+  };
+
+  // convert 'blind_signature' base64 string to `BlindSignature` instance
+  let blind_signature;
+  match unblind_signature_context_json["blind_signature"].as_str() {
+    Some(blind_signature_b64) => {
+      let blind_signature_b64 = base64::decode(blind_signature_b64).unwrap().to_vec();
+      blind_signature = BlindSignature::from(*array_ref![
+        blind_signature_b64,
+        0,
+        SIGNATURE_COMPRESSED_SIZE
+      ]);
+    },
+    None => { handle_err!("Property not set: 'blind_signature'", env); }
+  };
+
+  // convert 'blinding_factor' base64 string to `SignatureBlinding` instance
+  let blinding_factor;
+  match unblind_signature_context_json["blinding_factor"].as_str() {
+    Some(blinding_factor_b64) => {
+      let blinding_factor_b64 = base64::decode(blinding_factor_b64).unwrap().to_vec();
+      blinding_factor = SignatureBlinding::from(*array_ref![
+        blinding_factor_b64,
+        0,
+        FR_COMPRESSED_SIZE
+      ]);
+    },
+    None => { handle_err!("Property not set: 'blinding_factor'", env); }
+  };
+
+  let unblinded_signature = rust_bbs_unblind_signature(&blind_signature, &blinding_factor);
+
+  let signature_outcome = json!({
+    "signature": base64::encode(unblinded_signature.to_bytes_compressed_form().as_slice()),
+  });
+
+  // Serialize verification outcome to JSON string
+  match serde_json::to_string(&signature_outcome) {
+    Ok(signature_outcome_string) => {
+      let output = env
+        .new_string(signature_outcome_string)
+        .expect("Unable to create string from unblind signature outcome");
+
+      output.into_inner()
+    },
+    Err(_) => { handle_err!("Failed to stringify signature", env); }
+  }
+}
