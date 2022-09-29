@@ -1649,3 +1649,83 @@ pub extern "system" fn Java_life_nuggets_rs_Bbs_bbs_1get_1unblinded_1signature(
     Err(_) => { handle_err!("Failed to stringify signature", env); }
   }
 }
+
+#[allow(non_snake_case)]
+#[no_mangle]
+pub extern "system" fn Java_life_nuggets_rs_Bbs_bbs_1verify(
+  env: JNIEnv,
+  _class: JClass,
+  verify_signature_context: jbyteArray,
+) -> jstring {
+  let verify_signature_context_bytes;
+  match env.convert_byte_array(verify_signature_context) {
+      Err(_) => panic!("Failed converting `verify_signature_context` to byte array"),
+      Ok(bc) => verify_signature_context_bytes = bc,
+  };
+
+  // convert JSON string to JSON
+  let verify_signature_context_json: Value = match String::from_utf8(verify_signature_context_bytes.to_vec()) {
+    Ok(verify_signature_context_string) => {
+      match serde_json::from_str(&verify_signature_context_string) {
+        Ok(verify_signature_context) => verify_signature_context,
+        Err(_) => { handle_err!("Failed parsing JSON for unblind signature context", env); }
+      }
+    },
+    Err(_) => { handle_err!("Unblind signature context not set", env); }
+  };
+
+  // convert public key base64 string to `PublicKey` instance
+  let public_key = match verify_signature_context_json["public_key"].as_str() {
+    Some(public_key) => PublicKey::from_bytes_compressed_form(base64::decode(public_key).unwrap().as_slice()).unwrap(),
+    None => { handle_err!("Property not set: 'public_key'", env); }
+  };
+
+  // convert 'blind_signature' base64 string to `BlindSignature` instance
+  let signature;
+  match verify_signature_context_json["signature"].as_str() {
+    Some(signature_b64) => {
+      let signature_b64 = base64::decode(signature_b64).unwrap().to_vec();
+      signature = Signature::from(*array_ref![
+        signature_b64,
+        0,
+        SIGNATURE_COMPRESSED_SIZE
+      ]);
+    },
+    None => { handle_err!("Property not set: 'signature'", env); }
+  };
+
+  // get `messages` values as array
+  let messages_array = match verify_signature_context_json["messages"].as_array() {
+    Some(messages) => messages,
+    None => { handle_err!("Property not set: 'messages'", env); }
+  };
+
+  // convert messages base64 string to array of `SignatureMessage` instances
+  let mut messages = Vec::new();
+
+  for i in 0..messages_array.len() {
+      // add message to Vec
+      messages.push(SignatureMessage::hash(base64::decode(messages_array[i].as_str().unwrap()).unwrap().as_slice()));
+  }
+
+  match rust_bbs_verify(&signature, &messages, &public_key) {
+    Ok(verified) => {
+      let verify_outcome = json!({
+        "verified": verified,
+      });
+    
+      // Serialize verification outcome to JSON string
+      match serde_json::to_string(&verify_outcome) {
+        Ok(verify_outcome_string) => {
+          let output = env
+            .new_string(verify_outcome_string)
+            .expect("Unable to create string from signature verification outcome");
+  
+          output.into_inner()
+        },
+        Err(_) => { handle_err!("Failed to stringify verification outcome", env); }
+      }
+    },
+    Err(_) => { handle_err!("Unable to verify messages", env); }
+  }
+}
