@@ -24,6 +24,8 @@ public class Bbs {
 
   private static native String bbs_get_unblinded_signature(byte[] blind_signature_context);
 
+  private static native String bbs_verify(byte[] verify_signature_context);
+
   // The rest is just regular ol' Java!
   public static void main(String[] args) {
     // ----- Generate Blind Signing Commitment ----------------------------------------------------
@@ -133,5 +135,13 @@ public class Bbs {
     String unblindSignatureContext_missingBlindingFactor = "{\"blind_signature\":\"qvNzrFrZRXWjx82CC16qUO3LhNJ75R+wjyMSwCiWgBSABOOqtNoZnMUdWUPzu9t8BNs86kNGH5yBXPyIVRB6yxgkKx1UjgFy6QIxwpe0YBBqOFik1G94L0FJPayHRYb4cQPTBUzDtL6j+DR4h5BxIg==\"}";
     System.out.println(Bbs.bbs_get_unblinded_signature(unblindSignatureContext_missingBlindingFactor.getBytes()));
 
+
+    // ----- Verify Unblinded Signature -----------------------------------------------------------
+    
+    System.out.println("\n\n***** Verify Unblinded Signature *****\n");
+    
+    System.out.println("\nSuccess:");
+    String verifySignatureContext = "{\"public_key\":\"pQro1uqpvUPM31sr+jHffz7+KJIpA3kFen4SoKATURRgo7pk582aaqIxSinWsgHDB9j9dwxYRbC3q2ZmICR2OVMX3FHW9LZV2QAauTYFn7gEra1BSeKhdKDpzBxPjI36rAn7qKBJ+zoJjiSDxFiBlgyjPKRQzw8R6VHRJ62cUPEBUxx8mk1FpuDBdeXA8NpgAAAAA5PIYj94+VZFiDLKmgZyHmxOlO7EotGWxuSh76d51g3LhfLgz/ZvY647AiDghQwuGY5WCek2c+ag44eKZnSs3qXUCzRZsKo+r2ax3iZoaVI0+y7U4v1T+ak6CNwiLEwTvrHv85q7BeuXiARgPPsjtGuOKpHguUYfRgPGnALw6UYWTwpqhwo2/uv5IRqjVgwEkA==\",\"signature\":\"qvNzrFrZRXWjx82CC16qUO3LhNJ75R+wjyMSwCiWgBSABOOqtNoZnMUdWUPzu9t8BNs86kNGH5yBXPyIVRB6yxgkKx1UjgFy6QIxwpe0YBAjNtxnK2t8OPw6A2G7LnzgQyLBL54//6vvrD89/5c+uw==\",\"messages\":[\"bWVzc2FnZTE=\",\"bWVzc2FnZTI=\",\"bWVzc2FnZTM=\"]}";
+    System.out.println(Bbs.bbs_verify(verifySignatureContext.getBytes()));
   }
 }
