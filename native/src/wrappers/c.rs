@@ -21,6 +21,11 @@ pub struct JsonString {
   ptr: *const c_char,
 }
 
+/// Free memory for C string
+///
+/// # SAFETY
+/// The `json_string.ptr` pointer needs to follow the same safety requirements
+/// as Rust's `std::ffi::CStr::from_ptr`
 #[no_mangle]
 pub unsafe extern "C" fn ffi_bbs_signatures_free_json_string(json_string: JsonString) {
   let _ = Box::from_raw(json_string.ptr as *mut c_char);
@@ -50,19 +55,19 @@ pub unsafe extern "C" fn bbs_blind_signature_commitment(
   // convert public key base64 string to `PublicKey` instance
   let public_key = match blinding_context_json["public_key"].as_str() {
     Some(public_key) => PublicKey::from_bytes_compressed_form(base64::decode(public_key).unwrap().as_slice()).unwrap(),
-    None => { handle_err!("Public key not set", json_string); }
+    None => { handle_err!("Property not set: 'public_key'", json_string); }
   };
 
   // get `blinded` values as array
   let blinded = match blinding_context_json["blinded"].as_array() {
     Some(blinded) => blinded,
-    None => { handle_err!("Blinded message indexes array not set", json_string); }
+    None => { handle_err!("Property not set: 'blinded'", json_string); }
   };
 
   // get `messages` values as array
   let messages_to_blind = match blinding_context_json["messages"].as_array() {
     Some(messages) => messages,
-    None => { handle_err!("Messages data array not set", json_string); }
+    None => { handle_err!("Property not set: 'messages'", json_string); }
   };
 
   if blinded.len() != messages_to_blind.len() {
