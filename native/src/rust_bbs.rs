@@ -11,6 +11,41 @@ pub struct BlindingContext {
 }
 
 #[allow(dead_code)]
+pub fn rust_bbs_blind_signature_size() -> i32 {
+  SIGNATURE_COMPRESSED_SIZE as i32
+}
+
+#[no_mangle]
+pub fn rust_bbs_blinding_factor_size() -> i32 {
+  FR_COMPRESSED_SIZE as i32
+}
+
+#[no_mangle]
+pub fn rust_bls_secret_key_size() -> i32 {
+    FR_COMPRESSED_SIZE as i32
+}
+
+#[no_mangle]
+pub fn rust_bls_public_key_g2_size() -> i32 {
+    G2_COMPRESSED_SIZE as i32
+}
+
+#[no_mangle]
+pub fn rust_blinding_factor_size() -> i32 {
+    FR_COMPRESSED_SIZE as i32
+}
+
+#[no_mangle]
+pub fn rust_bls_public_key_g1_size() -> i32 {
+    G1_COMPRESSED_SIZE as i32
+}
+
+#[no_mangle]
+pub fn rust_bbs_signature_size() -> i32 {
+    SIGNATURE_COMPRESSED_SIZE as i32
+}
+
+#[allow(dead_code)]
 pub fn rust_bbs_blind_signature_commitment(
   context: &BlindingContext
 ) -> Result<(BlindSignatureContext, SignatureBlinding), BBSError> {
