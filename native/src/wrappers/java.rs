@@ -1433,6 +1433,82 @@ pub extern "system" fn Java_life_nuggets_rs_Bbs_bls_1generate_1g2_1key(
     Err(_) => { handle_err!("Failed to stringify G2 key", env); }
   }
 }
+
+#[allow(non_snake_case)]
+#[no_mangle]
+pub extern "system" fn Java_life_nuggets_rs_Bbs_bls_1secret_1key_1to_1bbs_1key(
+  env: JNIEnv,
+  _class: JClass,
+  ctx: jbyteArray,
+) -> jstring {
+  let context_bytes;
+  match env.convert_byte_array(ctx) {
+      Err(_) => panic!("Failed converting `ctx` to byte array"),
+      Ok(bc) => context_bytes = bc,
+  };
+
+  // convert JSON string to JSON
+  let context_json: Value = match String::from_utf8(context_bytes.to_vec()) {
+    Ok(context_string) => {
+      match serde_json::from_str(&context_string) {
+        Ok(context) => context,
+        Err(_) => { handle_err!("Failed parsing JSON context", env); }
+      }
+    },
+    Err(_) => { handle_err!("Context not set", env); }
+  };
+
+  // get message count
+  let message_count = match context_json["message_count"].as_u64() {
+    Some(message_count) => message_count,
+    None => { handle_err!("Property not set: 'message_count'", env); }
+  };
+
+  // convert 'secret_key' base64 string to `SecretKey` instance
+  let secret_key;
+  match context_json["secret_key"].as_str() {
+    Some(secret_key_b64) => {
+      let secret_key_bytes = base64::decode(secret_key_b64).unwrap().to_vec();
+      secret_key = SecretKey::from(*array_ref![
+        secret_key_bytes,
+        0,
+        FR_COMPRESSED_SIZE
+      ]);
+    },
+    None => { handle_err!("Property not set: 'secret_key'", env); }
+  }
+
+  // convert secret key to deterministic public key
+  let (dpk, _) = DeterministicPublicKey::new(Some(KeyGenOption::FromSecretKey(secret_key)));
+
+  // convert deterministic public key to compressed BBS public key
+  let pk;
+  match dpk.to_public_key(message_count as usize) {
+    Ok(p) => pk = p,
+    Err(_) => { handle_err!("Failed to convert to BBS public key", env); },
+  }
+  if pk.validate().is_err() {
+    handle_err!("Failed to validate public key", env);
+  }
+
+  let pk_bytes = pk.to_bytes_compressed_form();
+
+  let bbs_key = json!({
+    "public_key": base64::encode(pk_bytes.as_slice())
+  });
+
+  // Serialize `BlindCommitmentContext` to a JSON string
+  match serde_json::to_string(&bbs_key) {
+    Ok(bbs_key_string) => {
+      let output = env
+          .new_string(bbs_key_string)
+          .expect("Unable to create string from BBS key data");
+    
+      output.into_inner()
+    },
+    Err(_) => { handle_err!("Failed to stringify BBS key", env); }
+  }
+}
 #[allow(non_snake_case)]
 #[no_mangle]
 pub extern "system" fn Java_life_nuggets_rs_Bbs_bbs_1blind_1signature_1commitment(
