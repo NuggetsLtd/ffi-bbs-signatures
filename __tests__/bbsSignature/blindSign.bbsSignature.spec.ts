@@ -400,7 +400,6 @@ describe("bbsSignature", () => {
           const outcome = await verifyProof({ proof, publicKey, messages: [ unblindedMessages[0], unblindedMessages[0], unblindedMessages[0] ], nonce });
 
           expect(outcome.verified).toBe(false);
-          expect(outcome.error).toMatch(/The proof failed due to a revealed message was supplied that was not signed or a message was revealed that was initially hidden/);
         });
 
         it('where messages public key is incorrect', async () => {
@@ -414,7 +413,6 @@ describe("bbsSignature", () => {
           const outcome = await verifyProof({ proof, publicKey: randomBbsKeyPair.publicKey, messages: [ ...blindedMessages, ...unblindedMessages ], nonce });
 
           expect(outcome.verified).toBe(false);
-          expect(outcome.error).toMatch(/The proof failed due to An invalid signature was supplied/);
         });
 
         it('where nonce is incorrect', async () => {
@@ -425,8 +423,6 @@ describe("bbsSignature", () => {
           const outcome = await verifyProof({ proof, publicKey, messages: [ unblindedMessages[0] ], nonce: randomBytes(32) });
   
           expect(outcome.verified).toBe(false);
-          
-          expect(outcome.error).toMatch(/The proof failed due to a message was supplied when the proof was created that was not signed or a message was revealed that was initially hidden/);
         });
 
       });

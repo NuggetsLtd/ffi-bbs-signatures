@@ -1,13 +1,12 @@
 macro_rules! handle_err {
     ($e:expr, $json_string:expr) => {
-        // $e.map_err(|e| format!("{:?}", e)).unwrap()
-
         let err = json!({
           "error": {
             "name": "RustError",
             "message": $e
           }
         });
+
         match serde_json::to_string(&err) {
           Ok(mut blind_commitment_context_string) => {
             // add null terminator (for C-string)
@@ -21,6 +20,7 @@ macro_rules! handle_err {
           },
           Err(_) => ()
         }
+
         return 1;
     };
 }
