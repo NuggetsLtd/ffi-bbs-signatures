@@ -9,6 +9,86 @@ extern "C" {
 #endif
 /*
  * Class:     life_nuggets_rs_Bbs
+ * Method:    bls_generate_blinded_g1_key
+ * Signature: ([B)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_life_nuggets_rs_Bbs_bls_1generate_1blinded_1g1_1key
+  (JNIEnv *, jclass, jbyteArray);
+
+/*
+ * Class:     life_nuggets_rs_Bbs
+ * Method:    bls_generate_blinded_g2_key
+ * Signature: ([B)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_life_nuggets_rs_Bbs_bls_1generate_1blinded_1g2_1key
+  (JNIEnv *, jclass, jbyteArray);
+
+/*
+ * Class:     life_nuggets_rs_Bbs
+ * Method:    bls_generate_g1_key
+ * Signature: ([B)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_life_nuggets_rs_Bbs_bls_1generate_1g1_1key
+  (JNIEnv *, jclass, jbyteArray);
+
+/*
+ * Class:     life_nuggets_rs_Bbs
+ * Method:    bls_generate_g2_key
+ * Signature: ([B)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_life_nuggets_rs_Bbs_bls_1generate_1g2_1key
+  (JNIEnv *, jclass, jbyteArray);
+
+/*
+ * Class:     life_nuggets_rs_Bbs
+ * Method:    bls_secret_key_to_bbs_key
+ * Signature: ([B)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_life_nuggets_rs_Bbs_bls_1secret_1key_1to_1bbs_1key
+  (JNIEnv *, jclass, jbyteArray);
+
+/*
+ * Class:     life_nuggets_rs_Bbs
+ * Method:    bls_public_key_to_bbs_key
+ * Signature: ([B)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_life_nuggets_rs_Bbs_bls_1public_1key_1to_1bbs_1key
+  (JNIEnv *, jclass, jbyteArray);
+
+/*
+ * Class:     life_nuggets_rs_Bbs
+ * Method:    bbs_sign
+ * Signature: ([B)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_life_nuggets_rs_Bbs_bbs_1sign
+  (JNIEnv *, jclass, jbyteArray);
+
+/*
+ * Class:     life_nuggets_rs_Bbs
+ * Method:    bbs_create_proof
+ * Signature: ([B)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_life_nuggets_rs_Bbs_bbs_1create_1proof
+  (JNIEnv *, jclass, jbyteArray);
+
+/*
+ * Class:     life_nuggets_rs_Bbs
+ * Method:    bbs_verify_proof
+ * Signature: ([B)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_life_nuggets_rs_Bbs_bbs_1verify_1proof
+  (JNIEnv *, jclass, jbyteArray);
+
+/*
+ * Class:     life_nuggets_rs_Bbs
+ * Method:    bls_verify_proof
+ * Signature: ([B)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_life_nuggets_rs_Bbs_bls_1verify_1proof
+  (JNIEnv *, jclass, jbyteArray);
+
+/*
+ * Class:     life_nuggets_rs_Bbs
  * Method:    bbs_blind_signature_commitment
  * Signature: ([B)Ljava/lang/String;
  */
