@@ -146,6 +146,71 @@ pub fn rust_bbs_create_proof(
   }
 }
 
+#[allow(dead_code)]
+pub fn rust_bbs_verify_proof(
+  proof: &Vec<u8>,
+  public_key: PublicKey,
+  messages: &Vec<SignatureMessage>,
+  nonce: Option<Vec<u8>>,
+) -> Result<bool, BBSError> {
+
+  if public_key.validate().is_err() {
+    return Err(BBSError::from(BBSErrorKind::GeneralError {
+      msg: "Invalid public key".to_string(),
+    }));
+  }
+
+  let message_count = u16::from_be_bytes(*array_ref![proof, 0, 2]) as usize;
+  let bitvector_length = (message_count / 8) + 1;
+  let offset = 2 + bitvector_length;
+  let revealed = bitvector_to_revealed(&proof[2..offset]);
+
+  if messages.len() != revealed.len() {
+    return Err(BBSError::from(BBSErrorKind::GeneralError {
+      msg: format!("Given messages count ({}) is different from revealed messages count ({}) for this proof", messages.len(), revealed.len()),
+    }));
+  }
+
+  let proof = match PoKOfSignatureProof::from_bytes_compressed_form(&proof[offset..]) {
+    Ok(proof) => proof,
+    Err(error) => {
+      return Err(BBSError::from(BBSErrorKind::GeneralError {
+        msg: format!("Failed generating proof of knowledge: {}", error),
+      }))
+    }
+  };
+
+  let nonce = match nonce {
+    Some(ref s) => ProofNonce::hash(s.as_slice()),
+    None => ProofNonce::from([0u8; FR_COMPRESSED_SIZE]),
+  };
+  
+  let proof_request = ProofRequest {
+    revealed_messages: revealed.clone(),
+    verification_key: public_key,
+  };
+
+  let revealed = revealed.iter().collect::<Vec<&usize>>();
+  let mut revealed_messages = BTreeMap::new();
+  for i in 0..revealed.len() {
+    revealed_messages.insert(*revealed[i], messages[i].clone());
+  }
+
+  let signature_proof = SignatureProof {
+    revealed_messages,
+    proof,
+  };
+
+  match Verifier::verify_signature_pok(
+    &proof_request,
+    &signature_proof,
+    &nonce,
+  ) {
+    Ok(_) => Ok(true),
+    Err(_) => Ok(false)
+  }
+}
+
 /// Expects `revealed` to be sorted
 fn revealed_to_bitvector(total: usize, revealed: &BTreeSet<usize>) -> Vec<u8> {
     let mut bytes = vec![0u8; (total / 8) + 1];
@@ -159,4 +224,26 @@ fn revealed_to_bitvector(total: usize, revealed: &BTreeSet<usize>) -> Vec<u8> {
     // Convert to big endian
     bytes.reverse();
     bytes
+}
+
+/// Convert big-endian vector to u32
+fn bitvector_to_revealed(data: &[u8]) -> BTreeSet<usize> {
+    let mut revealed_messages = BTreeSet::new();
+    let mut scalar = 0;
+
+    for b in data.iter().rev() {
+        let mut v = *b;
+        let mut remaining = 8;
+        while v > 0 {
+            let revealed = v & 1u8;
+            if revealed == 1 {
+                revealed_messages.insert(scalar);
+            }
+            v >>= 1;
+            scalar += 1;
+            remaining -= 1;
+        }
+        scalar += remaining;
+    }
+    revealed_messages
 }
