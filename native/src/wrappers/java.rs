@@ -9,9 +9,10 @@ use crate::rust_bbs::{
   rust_bbs_blind_sign,
   rust_bbs_unblind_signature,
   rust_bbs_verify,
+  rust_bbs_create_proof,
 };
 use serde_json::{Value, json};
-use std::collections::{BTreeMap};
+use std::collections::{BTreeMap,BTreeSet};
 
 // This is the interface to the JVM that we'll
 // call the majority of our methods on.
@@ -69,6 +70,10 @@ use crate::{
 };
 use bbs::keys::{DeterministicPublicKey, KeyGenOption, SecretKey, DETERMINISTIC_PUBLIC_KEY_COMPRESSED_SIZE, PublicKey};
 use bbs::{ToVariableLengthBytes, FR_COMPRESSED_SIZE, G1_COMPRESSED_SIZE};
+use bbs::{
+  pm_revealed_raw,
+  pm_hidden_raw,
+};
 
 use std::cell::RefCell;
 
@@ -1269,6 +1274,59 @@ pub extern "system" fn Java_life_nuggets_rs_Bbs_bls_1generate_1blinded_1g1_1key(
   }
 }
 
+#[allow(non_snake_case)]
+#[no_mangle]
+pub extern "system" fn Java_life_nuggets_rs_Bbs_bls_1generate_1blinded_1g2_1key(
+  env: JNIEnv,
+  _class: JClass,
+  ctx: jbyteArray,
+) -> jstring {
+  let context_bytes;
+  match env.convert_byte_array(ctx) {
+      Err(_) => panic!("Failed converting `ctx` to byte array"),
+      Ok(bc) => context_bytes = bc,
+  };
+
+  // convert JSON string to JSON
+  let context_json: Value = match String::from_utf8(context_bytes.to_vec()) {
+    Ok(context_string) => {
+      match serde_json::from_str(&context_string) {
+        Ok(context) => context,
+        Err(_) => { handle_err!("Failed parsing JSON context", env); }
+      }
+    },
+    Err(_) => { handle_err!("Context not set", env); }
+  };
+
+  // convert seed base64 string to slice
+  let (bf_bytes, pk_bytes, sk_bytes) = match context_json["seed"].as_str() {
+    Some(seed) => {
+      match base64::decode(seed) {
+        Ok(seed_bytes) => bls_generate_blinded_g2_key(Some(seed_bytes)),
+        Err(_) => { handle_err!("Failed decoding base64 for: 'seed'", env); }
+      }
+    },
+    None => bls_generate_blinded_g2_key(None)
+  };
+
+  let blinded_g2_key = json!({
+    "public_key": base64::encode(pk_bytes.as_slice()),
+    "secret_key": base64::encode(sk_bytes.as_slice()),
+    "blinding_factor": base64::encode(bf_bytes.as_slice()),
+  });
+
+  // Serialize `BlindCommitmentContext` to a JSON string
+  match serde_json::to_string(&blinded_g2_key) {
+    Ok(blinded_g2_key_string) => {
+      let output = env
+          .new_string(blinded_g2_key_string)
+          .expect("Unable to create string from blinded G2 key data");
+    
+      output.into_inner()
+    },
+    Err(_) => { handle_err!("Failed to stringify blinded G2 key", env); }
+  }
+}
 #[allow(non_snake_case)]
 #[no_mangle]
 pub extern "system" fn Java_life_nuggets_rs_Bbs_bbs_1blind_1signature_1commitment(
