@@ -8,6 +8,7 @@ build/
 coverage/
 out/
 **/.DS_Store
+.vscode
 
 # C
 wrappers/c/libbbs.h
