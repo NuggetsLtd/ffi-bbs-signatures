@@ -1667,6 +1667,134 @@ pub extern "system" fn Java_life_nuggets_rs_Bbs_bbs_1sign(
     Err(_) => { handle_err!("Failed to stringify BBS key", env); }
   }
 }
+
+#[allow(non_snake_case)]
+#[no_mangle]
+pub extern "system" fn Java_life_nuggets_rs_Bbs_bbs_1create_1proof(
+  env: JNIEnv,
+  _class: JClass,
+  ctx: jbyteArray,
+) -> jstring {
+  let context_bytes;
+  match env.convert_byte_array(ctx) {
+      Err(_) => panic!("Failed converting `ctx` to byte array"),
+      Ok(bc) => context_bytes = bc,
+  };
+
+  // convert JSON string to JSON
+  let context_json: Value = match String::from_utf8(context_bytes.to_vec()) {
+    Ok(context_string) => {
+      match serde_json::from_str(&context_string) {
+        Ok(context) => context,
+        Err(_) => { handle_err!("Failed parsing JSON context", env); }
+      }
+    },
+    Err(_) => { handle_err!("Context not set", env); }
+  };
+
+  // convert 'signature' base64 string to `Signature` instance
+  let signature;
+  match context_json["signature"].as_str() {
+    Some(signature_b64) => {
+      let signature_b64 = base64::decode(signature_b64).unwrap().to_vec();
+      signature = Signature::from(*array_ref![
+        signature_b64,
+        0,
+        SIGNATURE_COMPRESSED_SIZE
+      ]);
+    },
+    None => { handle_err!("Property not set: 'signature'", env); }
+  };
+
+  // convert 'public_key' base64 string to `PublicKey` instance
+  let public_key = match context_json["public_key"].as_str() {
+    Some(public_key) => PublicKey::from_bytes_compressed_form(base64::decode(public_key).unwrap().as_slice()).unwrap(),
+    None => { handle_err!("Property not set: 'public_key'", env); }
+  };
+
+  if public_key.validate().is_err() {
+    handle_err!("Invalid public key", env);
+  }
+
+  // get `messages` values as array
+  let messages_array = match context_json["messages"].as_array() {
+    Some(messages) => messages,
+    None => { handle_err!("Property not set: 'messages'", env); }
+  };
+
+  // map `revealed` serde array values to Vec
+  let revealed_indices: Vec<i64> = match context_json["revealed"].as_array() {
+    Some(revealed) => revealed.into_iter().map(|b| match b.as_i64() {
+      Some(index) => index,
+      None => -1,
+    }).collect(),
+    None => { handle_err!("Property not set: 'revealed'", env); }
+  };
+
+  let message_count = messages_array.len() as i64;
+
+  let mut revealed = BTreeSet::new();
+  for i in 0..revealed_indices.len() {
+    let index = revealed_indices[i];
+    if index < 0 {
+      handle_err!(format!(
+        "Invalid index for 'revealed'. Must be integer between {} and {}",
+        0,
+        message_count
+      ), env);
+    }
+    if index > message_count {
+      handle_err!(format!(
+        "Index for 'revealed' is out of bounds. Must be between {} and {}: found {}",
+        0,
+        message_count,
+        index
+      ), env);
+    }
+    revealed.insert(index as usize);
+  }
+
+  let mut messages = Vec::new();
+  for i in 0..messages_array.len() {
+    let message = SignatureMessage::hash(base64::decode(messages_array[i].as_str().unwrap()).unwrap().as_slice());
+
+    if revealed.contains(&i) {
+      messages.push(
+        pm_revealed_raw!(message)
+      );
+    } else {
+      messages.push(pm_hidden_raw!(message));
+    }
+  }
+
+  // convert nonce base64 string to `ProofNonce` instance
+  let nonce = match context_json["nonce"].as_str() {
+    Some(nonce) => Some(base64::decode(nonce).unwrap()),
+    None => None
+  };
+
+  match rust_bbs_create_proof(&signature, &public_key, &messages, &revealed, nonce) {
+    Ok(pok) => {
+      let proof = json!({
+        "proof": base64::encode(pok)
+      });
+    
+      // Serialize proof to a JSON string
+      match serde_json::to_string(&proof) {
+        Ok(proof_string) => {
+          let output = env
+              .new_string(proof_string)
+              .expect("Unable to create string from BBS proof data");
+        
+          output.into_inner()
+        },
+        Err(_) => { handle_err!("Failed to stringify BBS proof", env); }
+      }
+    },
+    Err(error) => { handle_err!(format!("Failed generating proof of knowledge: {}", error), env); }
+  }
+}
+
 #[allow(non_snake_case)]
 #[no_mangle]
 pub extern "system" fn Java_life_nuggets_rs_Bbs_bbs_1blind_1signature_1commitment(
