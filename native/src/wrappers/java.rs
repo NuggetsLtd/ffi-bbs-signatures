@@ -10,6 +10,7 @@ use crate::rust_bbs::{
   rust_bbs_unblind_signature,
   rust_bbs_verify,
   rust_bbs_create_proof,
+  rust_bbs_verify_proof,
 };
 use serde_json::{Value, json};
 use std::collections::{BTreeMap,BTreeSet};
@@ -1852,6 +1853,93 @@ pub extern "system" fn Java_life_nuggets_rs_Bbs_bbs_1verify_1proof(
   };
 
   match rust_bbs_verify_proof(&proof, public_key, &messages, nonce) {
+    Ok(verified) => {
+      let verify_outcome = json!({
+        "verified": verified,
+      });
+    
+      // Serialize verification outcome to JSON string
+      match serde_json::to_string(&verify_outcome) {
+        Ok(verify_outcome_string) => {
+          let output = env
+            .new_string(verify_outcome_string)
+            .expect("Unable to create string from proof verification outcome");
+  
+          output.into_inner()
+        },
+        Err(_) => { handle_err!("Failed to stringify verification outcome", env); }
+      }
+    },
+    Err(error) => { handle_err!(format!("Failed verifying proof of knowledge: {}", error), env); }
+  }
+}
+
+#[allow(non_snake_case)]
+#[no_mangle]
+pub extern "system" fn Java_life_nuggets_rs_Bbs_bls_1verify_1proof(
+  env: JNIEnv,
+  _class: JClass,
+  ctx: jbyteArray,
+) -> jstring {
+  let context_bytes;
+  match env.convert_byte_array(ctx) {
+      Err(_) => panic!("Failed converting `ctx` to byte array"),
+      Ok(bc) => context_bytes = bc,
+  };
+
+  // convert JSON string to JSON
+  let context_json: Value = match String::from_utf8(context_bytes.to_vec()) {
+    Ok(context_string) => {
+      match serde_json::from_str(&context_string) {
+        Ok(context) => context,
+        Err(_) => { handle_err!("Failed parsing JSON context", env); }
+      }
+    },
+    Err(_) => { handle_err!("Context not set", env); }
+  };
+
+  // convert proof base64 string to `Proofproof` instance
+  let proof = match context_json["proof"].as_str() {
+    Some(proof) => base64::decode(proof).unwrap(),
+    None => { handle_err!("Property not set: 'proof'", env); }
+  };
+  let message_count = u16::from_be_bytes(*array_ref![proof, 0, 2]) as usize;
+
+  // convert nonce base64 string to `ProofNonce` instance
+  let nonce = match context_json["nonce"].as_str() {
+    Some(nonce) => Some(base64::decode(nonce).unwrap()),
+    None => None
+  };
+
+  // get `messages` values as array
+  let messages_array = match context_json["messages"].as_array() {
+    Some(messages) => messages,
+    None => { handle_err!("Property not set: 'messages'", env); }
+  };
+
+  // convert messages base64 string to array of `SignatureMessage` instances
+  let mut messages = Vec::new();
+
+  for i in 0..messages_array.len() {
+    // add message to Vec
+    messages.push(SignatureMessage::hash(base64::decode(messages_array[i].as_str().unwrap()).unwrap().as_slice()));
+  }
+  
+  // convert 'public_key' base64 string to `DeterministicPublicKey` instance
+  let dpk;
+  match context_json["public_key"].as_str() {
+    Some(public_key_b64) => {
+      let public_key_bytes = base64::decode(public_key_b64).unwrap().to_vec();
+      dpk = DeterministicPublicKey::from(*array_ref![
+        public_key_bytes,
+        0,
+        DETERMINISTIC_PUBLIC_KEY_COMPRESSED_SIZE
+      ]);
+    },
+    None => { handle_err!("Property not set: 'public_key'", env); }
+  }
+
+  match rust_bbs_verify_proof(&proof, dpk.to_public_key(message_count).unwrap(), &messages, nonce) {
     Ok(verified) => {
       let verify_outcome = json!({
         "verified": verified,
