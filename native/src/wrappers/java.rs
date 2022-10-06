@@ -1582,6 +1582,91 @@ pub extern "system" fn Java_life_nuggets_rs_Bbs_bls_1public_1key_1to_1bbs_1key(
     Err(_) => { handle_err!("Failed to stringify BBS key", env); }
   }
 }
+
+#[allow(non_snake_case)]
+#[no_mangle]
+pub extern "system" fn Java_life_nuggets_rs_Bbs_bbs_1sign(
+  env: JNIEnv,
+  _class: JClass,
+  ctx: jbyteArray,
+) -> jstring {
+  let context_bytes;
+  match env.convert_byte_array(ctx) {
+      Err(_) => panic!("Failed converting `ctx` to byte array"),
+      Ok(bc) => context_bytes = bc,
+  };
+
+  // convert JSON string to JSON
+  let context_json: Value = match String::from_utf8(context_bytes.to_vec()) {
+    Ok(context_string) => {
+      match serde_json::from_str(&context_string) {
+        Ok(context) => context,
+        Err(_) => { handle_err!("Failed parsing JSON context", env); }
+      }
+    },
+    Err(_) => { handle_err!("Context not set", env); }
+  };
+
+  // convert 'secret_key' base64 string to `SecretKey` instance
+  let secret_key;
+  match context_json["secret_key"].as_str() {
+    Some(secret_key_b64) => {
+      let secret_key_bytes = base64::decode(secret_key_b64).unwrap().to_vec();
+      secret_key = SecretKey::from(*array_ref![
+        secret_key_bytes,
+        0,
+        FR_COMPRESSED_SIZE
+      ]);
+    },
+    None => { handle_err!("Property not set: 'secret_key'", env); }
+  }
+
+  // convert 'public_key' base64 string to `PublicKey` instance
+  let public_key = match context_json["public_key"].as_str() {
+    Some(public_key) => PublicKey::from_bytes_compressed_form(base64::decode(public_key).unwrap().as_slice()).unwrap(),
+    None => { handle_err!("Property not set: 'public_key'", env); }
+  };
+
+  if public_key.validate().is_err() {
+    handle_err!("Invalid public key", env);
+  }
+
+  // get `messages` values as array
+  let messages_array = match context_json["messages"].as_array() {
+    Some(messages) => messages,
+    None => { handle_err!("Property not set: 'messages'", env); }
+  };
+
+  // convert messages base64 string to array of `SignatureMessage` instances
+  let mut messages = Vec::new();
+
+  for i in 0..messages_array.len() {
+    // add message to Vec
+    messages.push(SignatureMessage::hash(base64::decode(messages_array[i].as_str().unwrap()).unwrap().as_slice()));
+  }
+
+  // Serialize `Signature` to a JSON string
+  let signature = match Signature::new(messages.as_slice(), &secret_key, &public_key) {
+    Ok(signature) => signature,
+    Err(_) => { handle_err!("Failed to sign messages", env); }
+  };
+
+  let bbs_signature = json!({
+    "signature": base64::encode(signature.to_bytes_compressed_form())
+  });
+
+  // Serialize `BlindCommitmentContext` to a JSON string
+  match serde_json::to_string(&bbs_signature) {
+    Ok(bbs_signature_string) => {
+      let output = env
+          .new_string(bbs_signature_string)
+          .expect("Unable to create string from BBS signature data");
+    
+      output.into_inner()
+    },
+    Err(_) => { handle_err!("Failed to stringify BBS key", env); }
+  }
+}
 #[allow(non_snake_case)]
 #[no_mangle]
 pub extern "system" fn Java_life_nuggets_rs_Bbs_bbs_1blind_1signature_1commitment(
