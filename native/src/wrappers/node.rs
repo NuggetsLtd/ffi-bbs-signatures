@@ -13,6 +13,7 @@ use crate::rust_bbs::{
   rust_bbs_unblind_signature,
   rust_bbs_verify,
   rust_bbs_create_proof,
+  rust_bbs_verify_proof,
 };
 use crate::{
   bls_generate_blinded_g1_key,
@@ -321,11 +322,32 @@ fn node_bbs_create_proof(mut cx: FunctionContext) -> JsResult<JsArrayBuffer> {
 ///
 /// `return`: true if valid
 fn node_bls_verify_proof(mut cx: FunctionContext) -> JsResult<JsBoolean> {
-  let vcx = extract_verify_proof_context(&mut cx, true)?;
+  let js_obj = cx.argument::<JsObject>(0)?;
+  let proof = obj_property_to_slice!(&mut cx, js_obj, "proof");
+  let message_count = u16::from_be_bytes(*array_ref![proof, 0, 2]) as usize;
 
-  match verify_proof(vcx) {
-      Ok(_) => Ok(cx.boolean(true)),
-      Err(_) => Ok(cx.boolean(false)),
+  let nonce = obj_property_to_opt_slice!(&mut cx, js_obj, "nonce");
+
+  let dpk = DeterministicPublicKey::from(obj_property_to_fixed_array!(
+    &mut cx,
+    js_obj,
+    "publicKey",
+    0,
+    DETERMINISTIC_PUBLIC_KEY_COMPRESSED_SIZE
+  ));
+  let public_key = dpk.to_public_key(message_count).unwrap();
+
+  let message_bytes = obj_property_to_vec!(&mut cx, js_obj, "messages");
+
+  let mut messages = Vec::new();
+  for i in 0..message_bytes.len() {
+      let message = js_array_buffer_to_slice!(&mut cx, message_bytes[i]);
+      messages.push(SignatureMessage::hash(message));
+  }
+
+  match rust_bbs_verify_proof(&proof, public_key, &messages, nonce) {
+    Ok(verified) => Ok(cx.boolean(verified)),
+    Err(_) => Ok(cx.boolean(false))
   }
 }
 
@@ -343,121 +365,24 @@ fn node_bls_verify_proof(mut cx: FunctionContext) -> JsResult<JsBoolean> {
 ///
 /// `return`: true if valid
 fn node_bbs_verify_proof(mut cx: FunctionContext) -> JsResult<JsBoolean> {
-  let vcx = extract_verify_proof_context(&mut cx, false)?;
+  let js_obj = cx.argument::<JsObject>(0)?;
+  let proof = obj_property_to_slice!(&mut cx, js_obj, "proof");
+  let nonce = obj_property_to_opt_slice!(&mut cx, js_obj, "nonce");
+  let pk_bytes = obj_property_to_slice!(&mut cx, js_obj, "publicKey");
 
-  match verify_proof(vcx) {
-    Ok(_) => Ok(cx.boolean(true)),
-    Err(_) => Ok(cx.boolean(false)),
+  let public_key = PublicKey::from_bytes_compressed_form(pk_bytes.as_slice()).unwrap();
+  let message_bytes = obj_property_to_vec!(&mut cx, js_obj, "messages");
+
+  let mut messages = Vec::new();
+  for i in 0..message_bytes.len() {
+      let message = js_array_buffer_to_slice!(&mut cx, message_bytes[i]);
+      messages.push(SignatureMessage::hash(message));
   }
-}
 
-fn verify_proof(vcx: VerifyProofContext) -> Result<Vec<SignatureMessage>, Throw> {
-    let nonce = match vcx.nonce {
-        Some(ref s) => ProofNonce::hash(s.as_slice()),
-        None => ProofNonce::from([0u8; FR_COMPRESSED_SIZE]),
-    };
-    let proof_request = ProofRequest {
-        revealed_messages: vcx.revealed.clone(),
-        verification_key: vcx.public_key.clone(),
-    };
-
-    let revealed = vcx.revealed.iter().collect::<Vec<&usize>>();
-    let mut revealed_messages = BTreeMap::new();
-    for i in 0..vcx.revealed.len() {
-        revealed_messages.insert(*revealed[i], vcx.messages[i].clone());
-    }
-
-    let signature_proof = SignatureProof {
-        revealed_messages,
-        proof: vcx.proof.clone(),
-    };
-
-    Ok(handle_err!(Verifier::verify_signature_pok(
-        &proof_request,
-        &signature_proof,
-        &nonce,
-    )))
-}
-
-fn extract_verify_proof_context(cx: &mut FunctionContext, is_bls: bool) -> Result<VerifyProofContext, Throw> {
-    let js_obj = cx.argument::<JsObject>(0)?;
-
-    let proof = obj_property_to_slice!(cx, js_obj, "proof");
-    let message_count = u16::from_be_bytes(*array_ref![proof, 0, 2]) as usize;
-    let bitvector_length = (message_count / 8) + 1;
-    let offset = 2 + bitvector_length;
-    let revealed = bitvector_to_revealed(&proof[2..offset]);
-
-    let proof = handle_err!(PoKOfSignatureProof::from_bytes_compressed_form(&proof[offset..]));
-
-    let nonce = obj_property_to_opt_slice!(cx, js_obj, "nonce");
-    let message_bytes = obj_property_to_vec!(cx, js_obj, "messages");
-
-    if message_bytes.len() != revealed.len() {
-        panic!("Given messages count ({}) is different from revealed messages count ({}) for this proof",
-            message_bytes.len(), revealed.len());
-    }
-
-    let mut messages = Vec::new();
-    for i in 0..message_bytes.len() {
-        let message = js_array_buffer_to_slice!(cx, message_bytes[i]);
-        messages.push(SignatureMessage::hash(message));
-    }
-
-    let public_key = if is_bls {
-        let dpk = DeterministicPublicKey::from(obj_property_to_fixed_array!(
-            cx,
-            js_obj,
-            "publicKey",
-            0,
-            DETERMINISTIC_PUBLIC_KEY_COMPRESSED_SIZE
-        ));
-        dpk.to_public_key(message_count).unwrap()
-    } else {
-        let pk_bytes = obj_property_to_slice!(cx, js_obj, "publicKey");
-        PublicKey::from_bytes_compressed_form(pk_bytes.as_slice()).unwrap()
-    };
-    if public_key.validate().is_err() {
-        panic!("Invalid key");
-    }
-
-    Ok(VerifyProofContext {
-        proof,
-        public_key,
-        messages,
-        revealed,
-        nonce,
-    })
-}
-
-struct VerifyProofContext {
-    messages: Vec<SignatureMessage>,
-    proof: PoKOfSignatureProof,
-    public_key: PublicKey,
-    revealed: BTreeSet<usize>,
-    nonce: Option<Vec<u8>>,
-}
-
-/// Convert big-endian vector to u32
-fn bitvector_to_revealed(data: &[u8]) -> BTreeSet<usize> {
-    let mut revealed_messages = BTreeSet::new();
-    let mut scalar = 0;
-
-    for b in data.iter().rev() {
-        let mut v = *b;
-        let mut remaining = 8;
-        while v > 0 {
-            let revealed = v & 1u8;
-            if revealed == 1 {
-                revealed_messages.insert(scalar);
-            }
-            v >>= 1;
-            scalar += 1;
-            remaining -= 1;
-        }
-        scalar += remaining;
-    }
-    revealed_messages
+  match rust_bbs_verify_proof(&proof, public_key, &messages, nonce) {
+    Ok(verified) => Ok(cx.boolean(verified)),
+    Err(_) => Ok(cx.boolean(false))
+  }
 }
 
 /// This method should be called by the signature recipient and not the signer.
