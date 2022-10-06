@@ -2,8 +2,6 @@
 extern crate arrayref;
 #[macro_use]
 extern crate ffi_support;
-#[macro_use]
-extern crate lazy_static;
 
 use bbs::errors::BBSError;
 use bbs::pok_vc::PoKVCError;
@@ -115,11 +113,7 @@ define_bytebuffer_destructor!(bbs_byte_buffer_free);
 /// Wrapper to convert a string to ExternError and BBSError
 pub(crate) struct BbsFfiError(pub String);
 
-impl BbsFfiError {
-    pub fn new(m: &str) -> Self {
-        Self(m.to_string())
-    }
-}
+impl BbsFfiError { }
 
 impl From<BbsFfiError> for ExternError {
     fn from(e: BbsFfiError) -> Self {
@@ -250,18 +244,5 @@ fn gen_sk(msg: &[u8]) -> Fr {
     Fr::from_okm(&result)
 }
 
-#[macro_use]
-mod macros;
-
-#[cfg(any(target_os = "android", feature = "java"))]
-pub mod bbs_blind_commitment;
-pub mod bbs_blind_sign;
-pub mod bbs_create_proof;
-pub mod bbs_sign;
-pub mod bbs_verify_proof;
-pub mod bbs_verify_sign_proof;
-pub mod bls;
-
 mod rust_bbs;
-
 pub mod wrappers;
