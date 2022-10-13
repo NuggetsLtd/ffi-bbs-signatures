@@ -246,6 +246,62 @@ pub unsafe extern "C" fn bls_generate_g1_key(
     Err(_) => { handle_err!("Failed to stringify G1 key", json_string); }
   }
 }
+
+/// Generate G2 key
+///
+/// # SAFETY
+/// The `json_string.ptr` pointer needs to follow the same safety requirements
+/// as Rust's `std::ffi::CStr::from_ptr`
+#[no_mangle]
+pub unsafe extern "C" fn bls_generate_g2_key(
+  context: ffi::ByteArray,
+  json_string: &mut JsonString,
+) -> i32 {
+  // convert JSON string to JSON
+  let context_json: Value = match String::from_utf8(context.to_vec()) {
+    Ok(context_string) => {
+      match serde_json::from_str(&context_string) {
+        Ok(context_json) => context_json,
+        Err(_) => { handle_err!("Failed parsing JSON for context", json_string); }
+      }
+    },
+    Err(_) => { handle_err!("Context not set", json_string); }
+  };
+
+  // convert seed base64 string to slice
+  let (pk_bytes, sk_bytes) = match context_json["seed"].as_str() {
+    Some(seed) => {
+      match base64::decode(seed) {
+        Ok(seed_bytes) => crate::bls_generate_g2_key(Some(seed_bytes)),
+        Err(_) => { handle_err!("Failed decoding base64 for: 'seed'", json_string); }
+      }
+    },
+    None => crate::bls_generate_g2_key(None)
+  };
+
+  let g2_key = json!({
+    "public_key": base64::encode(pk_bytes.as_slice()),
+    "secret_key": base64::encode(sk_bytes.as_slice()),
+  });
+
+  // Serialize G2 key to a JSON string
+  match serde_json::to_string(&g2_key) {
+    Ok(mut g2_key_string) => {
+      // add null terminator (for C-string)
+      g2_key_string.push('\0');
+
+      // box the string, so string isn't de-allocated on leaving the scope of this fn
+      let boxed: Box<str> = g2_key_string.into_boxed_str();
+    
+      // set json_string pointer to boxed g2_key_string
+      json_string.ptr = Box::into_raw(boxed).cast();
+
+      0
+    },
+    Err(_) => { handle_err!("Failed to stringify Blinded G2 key", json_string); }
+  }
+}
+
 /// Generate Blind Signature Commitment JSON
 ///
 /// # SAFETY
