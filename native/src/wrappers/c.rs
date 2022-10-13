@@ -80,6 +80,61 @@ pub extern "C" fn bbs_blind_signature_size() -> i32 {
   rust_bbs_blind_signature_size()
 }
 
+/// Generate Blinded G1 key
+///
+/// # SAFETY
+/// The `json_string.ptr` pointer needs to follow the same safety requirements
+/// as Rust's `std::ffi::CStr::from_ptr`
+#[no_mangle]
+pub unsafe extern "C" fn bls_generate_blinded_g1_key(
+  context: ffi::ByteArray,
+  json_string: &mut JsonString,
+) -> i32 {
+  // convert JSON string to JSON
+  let context_json: Value = match String::from_utf8(context.to_vec()) {
+    Ok(context_string) => {
+      match serde_json::from_str(&context_string) {
+        Ok(context_json) => context_json,
+        Err(_) => { handle_err!("Failed parsing JSON for context", json_string); }
+      }
+    },
+    Err(_) => { handle_err!("Context not set", json_string); }
+  };
+
+  // convert seed base64 string to slice
+  let (bf_bytes, pk_bytes, sk_bytes) = match context_json["seed"].as_str() {
+    Some(seed) => {
+      match base64::decode(seed) {
+        Ok(seed_bytes) => crate::bls_generate_blinded_g1_key(Some(seed_bytes)),
+        Err(_) => { handle_err!("Failed decoding base64 for: 'seed'", json_string); }
+      }
+    },
+    None => crate::bls_generate_blinded_g1_key(None)
+  };
+
+  let blinded_g1_key = json!({
+    "public_key": base64::encode(pk_bytes.as_slice()),
+    "secret_key": base64::encode(sk_bytes.as_slice()),
+    "blinding_factor": base64::encode(bf_bytes.as_slice()),
+  });
+
+  // Serialize blinded G1 key to a JSON string
+  match serde_json::to_string(&blinded_g1_key) {
+    Ok(mut blinded_g1_key_string) => {
+      // add null terminator (for C-string)
+      blinded_g1_key_string.push('\0');
+
+      // box the string, so string isn't de-allocated on leaving the scope of this fn
+      let boxed: Box<str> = blinded_g1_key_string.into_boxed_str();
+    
+      // set json_string pointer to boxed blinded_g1_key_string
+      json_string.ptr = Box::into_raw(boxed).cast();
+
+      0
+    },
+    Err(_) => { handle_err!("Failed to stringify Blinded G1 key", json_string); }
+  }
+}
 /// Generate Blind Signature Commitment JSON
 ///
 /// # SAFETY
