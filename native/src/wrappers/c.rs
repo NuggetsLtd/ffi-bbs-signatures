@@ -541,6 +541,135 @@ pub unsafe extern "C" fn bbs_sign(
     Err(_) => { handle_err!("Failed to stringify BBS Signature", json_string); }
   }
 }
+
+/// BBS Create Proof
+///
+/// # SAFETY
+/// The `json_string.ptr` pointer needs to follow the same safety requirements
+/// as Rust's `std::ffi::CStr::from_ptr`
+#[no_mangle]
+pub unsafe extern "C" fn bbs_create_proof(
+  context: ffi::ByteArray,
+  json_string: &mut JsonString,
+) -> i32 {
+  // convert JSON string to JSON
+  let context_json: Value = match String::from_utf8(context.to_vec()) {
+    Ok(context_string) => {
+      match serde_json::from_str(&context_string) {
+        Ok(context_json) => context_json,
+        Err(_) => { handle_err!("Failed parsing JSON for context", json_string); }
+      }
+    },
+    Err(_) => { handle_err!("Context not set", json_string); }
+  };
+
+  // convert 'signature' base64 string to `Signature` instance
+  let signature;
+  match context_json["signature"].as_str() {
+    Some(signature_b64) => {
+      let signature_b64 = base64::decode(signature_b64).unwrap().to_vec();
+      signature = Signature::from(*array_ref![
+        signature_b64,
+        0,
+        SIGNATURE_COMPRESSED_SIZE
+      ]);
+    },
+    None => { handle_err!("Property not set: 'signature'", json_string); }
+  };
+
+  // convert 'public_key' base64 string to `PublicKey` instance
+  let public_key = match context_json["public_key"].as_str() {
+    Some(public_key) => PublicKey::from_bytes_compressed_form(base64::decode(public_key).unwrap().as_slice()).unwrap(),
+    None => { handle_err!("Property not set: 'public_key'", json_string); }
+  };
+
+  if public_key.validate().is_err() {
+    handle_err!("Invalid public key", json_string);
+  }
+
+  // get `messages` values as array
+  let messages_array = match context_json["messages"].as_array() {
+    Some(messages) => messages,
+    None => { handle_err!("Property not set: 'messages'", json_string); }
+  };
+
+  // map `revealed` serde array values to Vec
+  let revealed_indices: Vec<i64> = match context_json["revealed"].as_array() {
+    Some(revealed) => revealed.into_iter().map(|b| match b.as_i64() {
+      Some(index) => index,
+      None => -1,
+    }).collect(),
+    None => { handle_err!("Property not set: 'revealed'", json_string); }
+  };
+
+  let message_count = messages_array.len() as i64;
+
+  let mut revealed = BTreeSet::new();
+  for i in 0..revealed_indices.len() {
+    let index = revealed_indices[i];
+    if index < 0 {
+      handle_err!(format!(
+        "Invalid index for 'revealed'. Must be integer between {} and {}",
+        0,
+        message_count
+      ), json_string);
+    }
+    if index > message_count {
+      handle_err!(format!(
+        "Index for 'revealed' is out of bounds. Must be between {} and {}: found {}",
+        0,
+        message_count,
+        index
+      ), json_string);
+    }
+    revealed.insert(index as usize);
+  }
+
+  let mut messages = Vec::new();
+  for i in 0..messages_array.len() {
+    let message = SignatureMessage::hash(base64::decode(messages_array[i].as_str().unwrap()).unwrap().as_slice());
+
+    if revealed.contains(&i) {
+      messages.push(
+        pm_revealed_raw!(message)
+      );
+    } else {
+      messages.push(pm_hidden_raw!(message));
+    }
+  }
+
+  // convert nonce base64 string to `ProofNonce` instance
+  let nonce = match context_json["nonce"].as_str() {
+    Some(nonce) => Some(base64::decode(nonce).unwrap()),
+    None => None
+  };
+
+  match rust_bbs_create_proof(&signature, &public_key, &messages, &revealed, nonce) {
+    Ok(pok) => {
+      let proof = json!({
+        "proof": base64::encode(pok)
+      });
+
+      // Serialize object to a JSON string
+      match serde_json::to_string(&proof) {
+        Ok(mut proof_string) => {
+          // add null terminator (for C-string)
+          proof_string.push('\0');
+    
+          // box the string, so string isn't de-allocated on leaving the scope of this fn
+          let boxed: Box<str> = proof_string.into_boxed_str();
+        
+          // set json_string pointer to boxed proof_string
+          json_string.ptr = Box::into_raw(boxed).cast();
+    
+          0
+        },
+        Err(_) => { handle_err!("Failed to stringify BBS Proof", json_string); }
+      }
+    },
+    Err(error) => { handle_err!(format!("Failed generating proof of knowledge: {}", error), json_string); }
+  }
+}
 /// Generate Blind Signature Commitment JSON
 ///
 /// # SAFETY
