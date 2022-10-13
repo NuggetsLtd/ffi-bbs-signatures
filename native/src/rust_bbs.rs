@@ -51,7 +51,9 @@ pub fn rust_bbs_blind_signature_commitment(
 ) -> Result<(BlindSignatureContext, SignatureBlinding), BBSError> {
   // check public key is valid
   if context.public_key.validate().is_err() {
-      panic!("Invalid public key");
+    return Err(BBSError::from(BBSErrorKind::GeneralError {
+      msg: "Invalid public key".to_string(),
+    }));
   }
 
   Ok(Prover::new_blind_signature_context(&context.public_key, &context.messages, &context.nonce).unwrap())
@@ -66,7 +68,9 @@ pub fn rust_bbs_verify_blind_signature_proof(
 ) -> Result<bool, BBSError> {
   // check public key is valid
   if public_key.validate().is_err() {
-      panic!("Invalid public key");
+    return Err(BBSError::from(BBSErrorKind::GeneralError {
+      msg: "Invalid public key".to_string(),
+    }));
   }
 
   let mut messages: BTreeSet<usize> = (0..public_key.message_count()).collect();
@@ -75,12 +79,14 @@ pub fn rust_bbs_verify_blind_signature_proof(
   for i in 0..blinded.len() {
       let index = blinded[i];
       if index > message_count {
-          panic!(
-              "Index is out of bounds. Must be between {} and {}: found {}",
-              0,
-              public_key.message_count(),
-              index
-          );
+        return Err(BBSError::from(BBSErrorKind::GeneralError {
+          msg: format!(
+            "Index is out of bounds. Must be between {} and {}: found {}",
+            0,
+            public_key.message_count(),
+            index
+          ),
+        }));
       }
       messages.remove(&(index as usize));
   }
@@ -100,7 +106,9 @@ pub fn rust_bbs_blind_sign(
 ) -> Result<BlindSignature, BBSError> {
   // check public key is valid
   if public_key.validate().is_err() {
-      panic!("Invalid public key");
+    return Err(BBSError::from(BBSErrorKind::GeneralError {
+      msg: "Invalid public key".to_string(),
+    }));
   }
 
   BlindSignature::new(
@@ -127,7 +135,9 @@ pub fn rust_bbs_verify(
 ) -> Result<bool, BBSError> {
   // check public key is valid
   if public_key.validate().is_err() {
-      panic!("Invalid key");
+    return Err(BBSError::from(BBSErrorKind::GeneralError {
+      msg: "Invalid public key".to_string(),
+    }));
   }
 
   signature.verify(messages.as_slice(), public_key)
@@ -143,7 +153,9 @@ pub fn rust_bbs_create_proof(
 ) -> Result<Vec<u8>, BBSError> {
   // check public key is valid
   if public_key.validate().is_err() {
-      panic!("Invalid public key");
+    return Err(BBSError::from(BBSErrorKind::GeneralError {
+      msg: "Invalid public key".to_string(),
+    }));
   }
 
   let mut bitvector = (messages.len() as u16).to_be_bytes().to_vec();
