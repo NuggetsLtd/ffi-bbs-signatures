@@ -136,7 +136,7 @@ describe('NEON NodeJS Interface:', () => {
       let blsKey
 
       beforeAll(() => {
-        blsKey = bbs.bls_generate_blinded_g2_key(seed)
+        blsKey = bbs.bls_generate_g2_key(seed)
       })
 
       describe('should convert BLS secret key to BBS public key', () => {
@@ -161,7 +161,7 @@ describe('NEON NodeJS Interface:', () => {
       let blsKey
 
       beforeAll(() => {
-        blsKey = bbs.bls_generate_blinded_g2_key(seed)
+        blsKey = bbs.bls_generate_g2_key(seed)
       })
 
       describe('should convert BLS public key to BBS public key', () => {
@@ -169,13 +169,13 @@ describe('NEON NodeJS Interface:', () => {
         it('where "messageCount" = 1', () => {
           const bbsPublicKey = bbs.bls_public_key_to_bbs_key({ messageCount: 1, publicKey: blsKey.publicKey })
 
-          expect(Buffer.from(bbsPublicKey).toString('hex')).toBe('9062c81ce87bf8d1cd7fc25662dc4fb6236f103739110e95d1389f1dff6f6c29b8f08c333423b005f513668cf62458601837594c01e0f419f86210079858fb7563de15c24797a1dd5aab4bc49ebfc00cecea2edbaa831cf7c224503492257ae6b401adb52f2ef35fb07f647c0b1eecf9436b4ccdd7aab242daf380548247b5d4fa51097a1bd3544ebf6b872eebc2cd6600000001b224a86d0771dd62e98ffcb8fe7b75313a6fb27a0fc8c7f11e213a9734f2a171932295a2ce515dfaac465c461530f2c4')
+          expect(Buffer.from(bbsPublicKey).toString('hex')).toBe('a50ae8d6eaa9bd43ccdf5b2bfa31df7f3efe2892290379057a7e12a0a013511460a3ba64e7cd9a6aa2314a29d6b201c307d8fd770c5845b0b7ab6666202476395317dc51d6f4b655d9001ab936059fb804adad4149e2a174a0e9cc1c4f8c8dfa8a76e5cbe5214abfd637099582772dc25c4a6871edd33559f92db6de6bd1671bca4a4883d930c31423727a342c85636100000001b9541258be3921882ba181b8fe7eb08d8c6db3d47e21b04f6eae506ee9746826d4597e83c0b95b9fe7bc4495ec3efcbd')
         })
 
         it('where "messageCount" = 3', () => {
           const bbsPublicKey = bbs.bls_public_key_to_bbs_key({ messageCount: 3, publicKey: blsKey.publicKey })
 
-          expect(Buffer.from(bbsPublicKey).toString('hex')).toBe('9062c81ce87bf8d1cd7fc25662dc4fb6236f103739110e95d1389f1dff6f6c29b8f08c333423b005f513668cf62458601837594c01e0f419f86210079858fb7563de15c24797a1dd5aab4bc49ebfc00cecea2edbaa831cf7c224503492257ae68bd722df7e300a4b15eb3f18cfa04330a040056168d95631b592f93580b9f14aacaca78bcdc9ec6de645e3c01c4b1a9b00000003a692734fb179129164d1c65e709ecdaf2da2b0e4a1c88c4451233506c1d495a5d2608439f6578238e7fc2d8315437d57af332465365de1d97c3ef44223072e1a268ea5136e4d79367fa8e560a8750de27b02224f41dec006acdb51bd6b6d8b35a6308236aa97d9a15088dd4559fe24ea46088127099e7763e935e8175ebc5a817fd85041bfdc6d2c0f2bbfa713f117bd')
+          expect(Buffer.from(bbsPublicKey).toString('hex')).toBe('a50ae8d6eaa9bd43ccdf5b2bfa31df7f3efe2892290379057a7e12a0a013511460a3ba64e7cd9a6aa2314a29d6b201c307d8fd770c5845b0b7ab6666202476395317dc51d6f4b655d9001ab936059fb804adad4149e2a174a0e9cc1c4f8c8dfaac09fba8a049fb3a098e2483c45881960ca33ca450cf0f11e951d127ad9c50f101531c7c9a4d45a6e0c175e5c0f0da600000000393c8623f78f956458832ca9a06721e6c4e94eec4a2d196c6e4a1efa779d60dcb85f2e0cff66f63ae3b0220e0850c2e198e5609e93673e6a0e3878a6674acdea5d40b3459b0aa3eaf66b1de2668695234fb2ed4e2fd53f9a93a08dc222c4c13beb1eff39abb05eb978804603cfb23b46b8e2a91e0b9461f4603c69c02f0e946164f0a6a870a36feebf9211aa3560c0490')
         })
 
       })
@@ -186,7 +186,7 @@ describe('NEON NodeJS Interface:', () => {
       let blsKey
 
       beforeAll(() => {
-        blsKey = bbs.bls_generate_blinded_g2_key(seed)
+        blsKey = bbs.bls_generate_g2_key(seed)
       })
 
       describe('should generate signature of the correct length', () => {
@@ -220,7 +220,7 @@ describe('NEON NodeJS Interface:', () => {
       let blsKey, bbsPublicKey
 
       beforeAll(() => {
-        blsKey = bbs.bls_generate_blinded_g2_key(seed)
+        blsKey = bbs.bls_generate_g2_key(seed)
         bbsPublicKey = bbs.bls_secret_key_to_bbs_key({ messageCount: messages.length, secretKey: blsKey.secretKey })
       })
 
@@ -240,7 +240,7 @@ describe('NEON NodeJS Interface:', () => {
       let blsKey, bbsPublicKey
 
       beforeAll(() => {
-        blsKey = bbs.bls_generate_blinded_g2_key(seed)
+        blsKey = bbs.bls_generate_g2_key(seed)
         bbsPublicKey = bbs.bls_secret_key_to_bbs_key({ messageCount: messages.length, secretKey: blsKey.secretKey })
       })
 
@@ -273,6 +273,7 @@ describe('NEON NodeJS Interface:', () => {
 
         it('where incorrect nonce supplied', () => {
           const randomNonce = Uint8Array.from(crypto.randomBytes(32)).buffer
+
           const { commitment, challengeHash, proofOfHiddenMessages } = bbs.bbs_blind_signature_commitment({ publicKey: bbsPublicKey, messages: [ messages[0], messages[1] ], blinded: [ 0, 1 ], nonce })
           const verified = bbs.bbs_verify_blind_signature_proof({ commitment, challengeHash, proofOfHiddenMessages, publicKey: bbsPublicKey, blinded: [ 0 ], nonce: randomNonce })
 
@@ -287,7 +288,7 @@ describe('NEON NodeJS Interface:', () => {
       let blsKey, bbsPublicKey
 
       beforeAll(() => {
-        blsKey = bbs.bls_generate_blinded_g2_key(seed)
+        blsKey = bbs.bls_generate_g2_key(seed)
         bbsPublicKey = bbs.bls_secret_key_to_bbs_key({ messageCount: messages.length, secretKey: blsKey.secretKey })
       })
 
@@ -304,7 +305,7 @@ describe('NEON NodeJS Interface:', () => {
       let blsKey, bbsPublicKey
 
       beforeAll(() => {
-        blsKey = bbs.bls_generate_blinded_g2_key(seed)
+        blsKey = bbs.bls_generate_g2_key(seed)
         bbsPublicKey = bbs.bls_secret_key_to_bbs_key({ messageCount: messages.length, secretKey: blsKey.secretKey })
       })
 
@@ -325,7 +326,7 @@ describe('NEON NodeJS Interface:', () => {
       let blsKey
 
       beforeAll(() => {
-        blsKey = bbs.bls_generate_blinded_g2_key(seed)
+        blsKey = bbs.bls_generate_g2_key(seed)
       })
 
       describe('should verify a standard signature', () => {
@@ -374,10 +375,22 @@ describe('NEON NodeJS Interface:', () => {
           // 2x blinded message commitment
           const { commitment, blindingFactor } = bbs.bbs_blind_signature_commitment({ publicKey: bbsPublicKey, messages: [ messages[0], messages[1] ], blinded: [ 0, 1 ], nonce })
 
+          console.log('>>> XXX', {
+            commitment: Buffer.from(commitment).toString('base64'),
+            blindingFactor: Buffer.from(blindingFactor).toString('base64')
+          })
+
+          // const commitment = base64ToArrayBuffer('qoYHzbHYkQf3KRcjn5HZqA9x+XV7XTfmIgC9ecdjRYsgVCfRQ/9ywgeyho8t/241')
+          // const blindingFactor = base64ToArrayBuffer('Nb/dNSRZabdcKwtJOG1VLMiRgM7nTZopURgGuRWqMZQ=')
+
           // blind sign with 1 unblinded message
           const blindSignature = bbs.bbs_blind_sign({ commitment, publicKey: bbsPublicKey, secretKey: blsKey.secretKey, messages: [ messages[2] ], known: [ 2 ] })
           const unblindedSignature = bbs.bbs_get_unblinded_signature(blindSignature, blindingFactor)
-
+          console.log('>>> VERIFY', {
+            blindSignature: Buffer.from(blindSignature).toString('base64'),
+            blindingFactor: Buffer.from(blindingFactor).toString('base64'),
+            unblindedSignature: Buffer.from(unblindedSignature).toString('base64')
+          })
           // verify unblinded signature
           const verified = bbs.bbs_verify({ signature: unblindedSignature, publicKey: bbsPublicKey, messages })
 
@@ -403,7 +416,7 @@ describe('NEON NodeJS Interface:', () => {
           const signature = bbs.bbs_sign({ secretKey: blsKey.secretKey, publicKey: bbsPublicKey, messages })
 
           const randomSeed = base64ToArrayBuffer('JhRwDXovpCVDEhrG/SAsjEaUGbsty2Lu/AdywOHnNPrz7r4phYXvLNmvAHSdosgqbZA=')
-          const randomBlsKey = bbs.bls_generate_blinded_g2_key(randomSeed)
+          const randomBlsKey = bbs.bls_generate_g2_key(randomSeed)
           const randomBbsPublicKey = bbs.bls_secret_key_to_bbs_key({ messageCount: messages.length, secretKey: randomBlsKey.secretKey })
 
           const verified = bbs.bbs_verify({ signature, publicKey: randomBbsPublicKey, messages })
@@ -435,7 +448,7 @@ describe('NEON NodeJS Interface:', () => {
       let blsKey, bbsPublicKey, signature
 
       beforeAll(() => {
-        blsKey = bbs.bls_generate_blinded_g2_key(seed)
+        blsKey = bbs.bls_generate_g2_key(seed)
         bbsPublicKey = bbs.bls_secret_key_to_bbs_key({ messageCount: messages.length, secretKey: blsKey.secretKey })
         signature = bbs.bbs_sign({ secretKey: blsKey.secretKey, publicKey: bbsPublicKey, messages })
       })
@@ -476,7 +489,7 @@ describe('NEON NodeJS Interface:', () => {
       let blsKey, bbsPublicKey, signature
 
       beforeAll(() => {
-        blsKey = bbs.bls_generate_blinded_g2_key(seed)
+        blsKey = bbs.bls_generate_g2_key(seed)
         bbsPublicKey = bbs.bls_secret_key_to_bbs_key({ messageCount: messages.length, secretKey: blsKey.secretKey })
         signature = bbs.bbs_sign({ secretKey: blsKey.secretKey, publicKey: bbsPublicKey, messages })
       })
@@ -559,7 +572,7 @@ describe('NEON NodeJS Interface:', () => {
           const proof = bbs.bbs_create_proof({ signature, publicKey: bbsPublicKey, messages, revealed: [ 0, 1, 2 ], nonce })
 
           const randomSeed = base64ToArrayBuffer('JhRwDXovpCVDEhrG/SAsjEaUGbsty2Lu/AdywOHnNPrz7r4phYXvLNmvAHSdosgqbZA=')
-          const randomBlsKey = bbs.bls_generate_blinded_g2_key(randomSeed)
+          const randomBlsKey = bbs.bls_generate_g2_key(randomSeed)
           const randomBbsPublicKey = bbs.bls_secret_key_to_bbs_key({ messageCount: messages.length, secretKey: randomBlsKey.secretKey })
 
           const verified = bbs.bbs_verify_proof({ proof, publicKey: randomBbsPublicKey, messages, nonce })
