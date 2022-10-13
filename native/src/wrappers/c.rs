@@ -750,6 +750,96 @@ pub unsafe extern "C" fn bbs_verify_proof(
     Err(error) => { handle_err!(format!("Failed verifying proof of knowledge: {}", error), json_string); }
   }
 }
+
+/// BLS Verify Proof
+///
+/// # SAFETY
+/// The `json_string.ptr` pointer needs to follow the same safety requirements
+/// as Rust's `std::ffi::CStr::from_ptr`
+#[no_mangle]
+pub unsafe extern "C" fn bls_verify_proof(
+  context: ffi::ByteArray,
+  json_string: &mut JsonString,
+) -> i32 {
+  // convert JSON string to JSON
+  let context_json: Value = match String::from_utf8(context.to_vec()) {
+    Ok(context_string) => {
+      match serde_json::from_str(&context_string) {
+        Ok(context_json) => context_json,
+        Err(_) => { handle_err!("Failed parsing JSON for context", json_string); }
+      }
+    },
+    Err(_) => { handle_err!("Context not set", json_string); }
+  };
+
+  // convert proof base64 string to `Proofproof` instance
+  let proof = match context_json["proof"].as_str() {
+    Some(proof) => base64::decode(proof).unwrap(),
+    None => { handle_err!("Property not set: 'proof'", json_string); }
+  };
+  let message_count = u16::from_be_bytes(*array_ref![proof, 0, 2]) as usize;
+
+  // convert nonce base64 string to `ProofNonce` instance
+  let nonce = match context_json["nonce"].as_str() {
+    Some(nonce) => Some(base64::decode(nonce).unwrap()),
+    None => None
+  };
+
+  // get `messages` values as array
+  let messages_array = match context_json["messages"].as_array() {
+    Some(messages) => messages,
+    None => { handle_err!("Property not set: 'messages'", json_string); }
+  };
+
+  // convert messages base64 string to array of `SignatureMessage` instances
+  let mut messages = Vec::new();
+
+  for i in 0..messages_array.len() {
+    // add message to Vec
+    messages.push(SignatureMessage::hash(base64::decode(messages_array[i].as_str().unwrap()).unwrap().as_slice()));
+  }
+  
+  // convert 'public_key' base64 string to `DeterministicPublicKey` instance
+  let dpk;
+  match context_json["public_key"].as_str() {
+    Some(public_key_b64) => {
+      let public_key_bytes = base64::decode(public_key_b64).unwrap().to_vec();
+      dpk = DeterministicPublicKey::from(*array_ref![
+        public_key_bytes,
+        0,
+        DETERMINISTIC_PUBLIC_KEY_COMPRESSED_SIZE
+      ]);
+    },
+    None => { handle_err!("Property not set: 'public_key'", json_string); }
+  }
+
+  match rust_bbs_verify_proof(&proof, dpk.to_public_key(message_count).unwrap(), &messages, nonce) {
+    Ok(verified) => {
+      let verify_outcome = json!({
+        "verified": verified,
+      });
+
+      // Serialize object to a JSON string
+      match serde_json::to_string(&verify_outcome) {
+        Ok(mut verify_outcome_string) => {
+          // add null terminator (for C-string)
+          verify_outcome_string.push('\0');
+    
+          // box the string, so string isn't de-allocated on leaving the scope of this fn
+          let boxed: Box<str> = verify_outcome_string.into_boxed_str();
+        
+          // set json_string pointer to boxed verify_outcome_string
+          json_string.ptr = Box::into_raw(boxed).cast();
+    
+          0
+        },
+        Err(_) => { handle_err!("Failed to stringify BBS Proof verification", json_string); }
+      }
+    },
+    Err(error) => { handle_err!(format!("Failed verifying proof of knowledge: {}", error), json_string); }
+  }
+}
+
 /// Generate Blind Signature Commitment JSON
 ///
 /// # SAFETY
