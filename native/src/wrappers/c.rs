@@ -454,6 +454,93 @@ pub unsafe extern "C" fn bls_public_key_to_bbs_key(
     Err(_) => { handle_err!("Failed to stringify BBS key", json_string); }
   }
 }
+
+/// BBS Sign
+///
+/// # SAFETY
+/// The `json_string.ptr` pointer needs to follow the same safety requirements
+/// as Rust's `std::ffi::CStr::from_ptr`
+#[no_mangle]
+pub unsafe extern "C" fn bbs_sign(
+  context: ffi::ByteArray,
+  json_string: &mut JsonString,
+) -> i32 {
+  // convert JSON string to JSON
+  let context_json: Value = match String::from_utf8(context.to_vec()) {
+    Ok(context_string) => {
+      match serde_json::from_str(&context_string) {
+        Ok(context_json) => context_json,
+        Err(_) => { handle_err!("Failed parsing JSON for context", json_string); }
+      }
+    },
+    Err(_) => { handle_err!("Context not set", json_string); }
+  };
+
+  // convert 'secret_key' base64 string to `SecretKey` instance
+  let secret_key;
+  match context_json["secret_key"].as_str() {
+    Some(secret_key_b64) => {
+      let secret_key_bytes = base64::decode(secret_key_b64).unwrap().to_vec();
+      secret_key = SecretKey::from(*array_ref![
+        secret_key_bytes,
+        0,
+        FR_COMPRESSED_SIZE
+      ]);
+    },
+    None => { handle_err!("Property not set: 'secret_key'", json_string); }
+  }
+
+  // convert 'public_key' base64 string to `PublicKey` instance
+  let public_key = match context_json["public_key"].as_str() {
+    Some(public_key) => PublicKey::from_bytes_compressed_form(base64::decode(public_key).unwrap().as_slice()).unwrap(),
+    None => { handle_err!("Property not set: 'public_key'", json_string); }
+  };
+
+  if public_key.validate().is_err() {
+    handle_err!("Invalid public key", json_string);
+  }
+
+  // get `messages` values as array
+  let messages_array = match context_json["messages"].as_array() {
+    Some(messages) => messages,
+    None => { handle_err!("Property not set: 'messages'", json_string); }
+  };
+
+  // convert messages base64 string to array of `SignatureMessage` instances
+  let mut messages = Vec::new();
+
+  for i in 0..messages_array.len() {
+    // add message to Vec
+    messages.push(SignatureMessage::hash(base64::decode(messages_array[i].as_str().unwrap()).unwrap().as_slice()));
+  }
+
+  // Serialize `Signature` to a JSON string
+  let signature = match Signature::new(messages.as_slice(), &secret_key, &public_key) {
+    Ok(signature) => signature,
+    Err(_) => { handle_err!("Failed to sign messages", json_string); }
+  };
+
+  let bbs_signature = json!({
+    "signature": base64::encode(signature.to_bytes_compressed_form())
+  });
+
+  // Serialize object to a JSON string
+  match serde_json::to_string(&bbs_signature) {
+    Ok(mut bbs_signature_string) => {
+      // add null terminator (for C-string)
+      bbs_signature_string.push('\0');
+
+      // box the string, so string isn't de-allocated on leaving the scope of this fn
+      let boxed: Box<str> = bbs_signature_string.into_boxed_str();
+    
+      // set json_string pointer to boxed bbs_signature_string
+      json_string.ptr = Box::into_raw(boxed).cast();
+
+      0
+    },
+    Err(_) => { handle_err!("Failed to stringify BBS Signature", json_string); }
+  }
+}
 /// Generate Blind Signature Commitment JSON
 ///
 /// # SAFETY
