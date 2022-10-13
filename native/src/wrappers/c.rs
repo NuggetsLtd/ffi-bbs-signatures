@@ -6,15 +6,28 @@ pub mod ffi;
 use bbs::prelude::*;
 use crate::rust_bbs::{
   BlindingContext,
+  rust_bbs_blind_signature_size,
+  rust_bbs_blinding_factor_size,
+  rust_bls_public_key_g1_size,
+  rust_bls_public_key_g2_size,
+  rust_bls_secret_key_size,
+  rust_bbs_signature_size,
   rust_bbs_blind_signature_commitment,
   rust_bbs_verify_blind_signature_proof,
   rust_bbs_blind_sign,
   rust_bbs_unblind_signature,
   rust_bbs_verify,
+  rust_bbs_create_proof,
+  rust_bbs_verify_proof,
 };
 use std::os::raw::c_char;
 use serde_json::{Value, json};
-use std::collections::{BTreeMap};
+use std::collections::{BTreeMap,BTreeSet};
+
+use bbs::{
+  pm_revealed_raw,
+  pm_hidden_raw,
+};
 
 #[repr(C)]
 pub struct JsonString {
@@ -29,6 +42,42 @@ pub struct JsonString {
 #[no_mangle]
 pub unsafe extern "C" fn ffi_bbs_signatures_free_json_string(json_string: JsonString) {
   let _ = Box::from_raw(json_string.ptr as *mut c_char);
+}
+
+/// Get size of G1 public key
+#[no_mangle]
+pub extern "C" fn bls_public_key_g1_size() -> i32 {
+  rust_bls_public_key_g1_size()
+}
+
+/// Get size of G2 public key
+#[no_mangle]
+pub extern "C" fn bls_public_key_g2_size() -> i32 {
+  rust_bls_public_key_g2_size()
+}
+
+/// Get size of blinding factor
+#[no_mangle]
+pub extern "C" fn bbs_blinding_factor_size() -> i32 {
+  rust_bbs_blinding_factor_size()
+}
+
+/// Get size of bls secret key
+#[no_mangle]
+pub extern "C" fn bls_secret_key_size() -> i32 {
+  rust_bls_secret_key_size()
+}
+
+/// Get size of bbs signature
+#[no_mangle]
+pub extern "C" fn bbs_signature_size() -> i32 {
+  rust_bbs_signature_size()
+}
+
+/// Get size of blind signature
+#[no_mangle]
+pub extern "C" fn bbs_blind_signature_size() -> i32 {
+  rust_bbs_blind_signature_size()
 }
 
 /// Generate Blind Signature Commitment JSON
