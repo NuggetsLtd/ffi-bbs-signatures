@@ -302,6 +302,84 @@ pub unsafe extern "C" fn bls_generate_g2_key(
   }
 }
 
+/// Convert BLS Secret Key to BBS Public Key
+///
+/// # SAFETY
+/// The `json_string.ptr` pointer needs to follow the same safety requirements
+/// as Rust's `std::ffi::CStr::from_ptr`
+#[no_mangle]
+pub unsafe extern "C" fn bls_secret_key_to_bbs_key(
+  context: ffi::ByteArray,
+  json_string: &mut JsonString,
+) -> i32 {
+  // convert JSON string to JSON
+  let context_json: Value = match String::from_utf8(context.to_vec()) {
+    Ok(context_string) => {
+      match serde_json::from_str(&context_string) {
+        Ok(context_json) => context_json,
+        Err(_) => { handle_err!("Failed parsing JSON for context", json_string); }
+      }
+    },
+    Err(_) => { handle_err!("Context not set", json_string); }
+  };
+
+  // get message count
+  let message_count = match context_json["message_count"].as_u64() {
+    Some(message_count) => message_count,
+    None => { handle_err!("Property not set: 'message_count'", json_string); }
+  };
+
+  // convert 'secret_key' base64 string to `SecretKey` instance
+  let secret_key;
+  match context_json["secret_key"].as_str() {
+    Some(secret_key_b64) => {
+      let secret_key_bytes = base64::decode(secret_key_b64).unwrap().to_vec();
+      secret_key = SecretKey::from(*array_ref![
+        secret_key_bytes,
+        0,
+        FR_COMPRESSED_SIZE
+      ]);
+    },
+    None => { handle_err!("Property not set: 'secret_key'", json_string); }
+  }
+
+  // convert secret key to deterministic public key
+  let (dpk, _) = DeterministicPublicKey::new(Some(KeyGenOption::FromSecretKey(secret_key)));
+
+  // convert deterministic public key to compressed BBS public key
+  let pk;
+  match dpk.to_public_key(message_count as usize) {
+    Ok(p) => pk = p,
+    Err(_) => { handle_err!("Failed to convert to BBS public key", json_string); },
+  }
+  if pk.validate().is_err() {
+    handle_err!("Failed to validate public key", json_string);
+  }
+
+  let pk_bytes = pk.to_bytes_compressed_form();
+
+  let bbs_key = json!({
+    "public_key": base64::encode(pk_bytes.as_slice())
+  });
+
+  // Serialize BBS key to a JSON string
+  match serde_json::to_string(&bbs_key) {
+    Ok(mut bbs_key_string) => {
+      // add null terminator (for C-string)
+      bbs_key_string.push('\0');
+
+      // box the string, so string isn't de-allocated on leaving the scope of this fn
+      let boxed: Box<str> = bbs_key_string.into_boxed_str();
+    
+      // set json_string pointer to boxed bbs_key_string
+      json_string.ptr = Box::into_raw(boxed).cast();
+
+      0
+    },
+    Err(_) => { handle_err!("Failed to stringify BBS key", json_string); }
+  }
+}
+
 /// Generate Blind Signature Commitment JSON
 ///
 /// # SAFETY
