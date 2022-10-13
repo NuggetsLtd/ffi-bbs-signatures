@@ -122,7 +122,7 @@ pub extern "system" fn Java_life_nuggets_rs_Bbs_bls_1generate_1blinded_1g1_1key(
 ) -> jstring {
   let context_bytes;
   match env.convert_byte_array(ctx) {
-      Err(_) => panic!("Failed converting `ctx` to byte array"),
+      Err(_) => { handle_err!("Failed converting `ctx` to byte array", env); }
       Ok(bc) => context_bytes = bc,
   };
 
@@ -176,8 +176,8 @@ pub extern "system" fn Java_life_nuggets_rs_Bbs_bls_1generate_1blinded_1g2_1key(
 ) -> jstring {
   let context_bytes;
   match env.convert_byte_array(ctx) {
-      Err(_) => panic!("Failed converting `ctx` to byte array"),
-      Ok(bc) => context_bytes = bc,
+    Err(_) => { handle_err!("Failed converting `ctx` to byte array", env); }
+    Ok(bc) => context_bytes = bc,
   };
 
   // convert JSON string to JSON
@@ -230,8 +230,8 @@ pub extern "system" fn Java_life_nuggets_rs_Bbs_bls_1generate_1g1_1key(
 ) -> jstring {
   let context_bytes;
   match env.convert_byte_array(ctx) {
-      Err(_) => panic!("Failed converting `ctx` to byte array"),
-      Ok(bc) => context_bytes = bc,
+    Err(_) => { handle_err!("Failed converting `ctx` to byte array", env); }
+    Ok(bc) => context_bytes = bc,
   };
 
   // convert JSON string to JSON
@@ -283,8 +283,8 @@ pub extern "system" fn Java_life_nuggets_rs_Bbs_bls_1generate_1g2_1key(
 ) -> jstring {
   let context_bytes;
   match env.convert_byte_array(ctx) {
-      Err(_) => panic!("Failed converting `ctx` to byte array"),
-      Ok(bc) => context_bytes = bc,
+    Err(_) => { handle_err!("Failed converting `ctx` to byte array", env); }
+    Ok(bc) => context_bytes = bc,
   };
 
   // convert JSON string to JSON
@@ -336,8 +336,8 @@ pub extern "system" fn Java_life_nuggets_rs_Bbs_bls_1secret_1key_1to_1bbs_1key(
 ) -> jstring {
   let context_bytes;
   match env.convert_byte_array(ctx) {
-      Err(_) => panic!("Failed converting `ctx` to byte array"),
-      Ok(bc) => context_bytes = bc,
+    Err(_) => { handle_err!("Failed converting `ctx` to byte array", env); }
+    Ok(bc) => context_bytes = bc,
   };
 
   // convert JSON string to JSON
@@ -412,8 +412,8 @@ pub extern "system" fn Java_life_nuggets_rs_Bbs_bls_1public_1key_1to_1bbs_1key(
 ) -> jstring {
   let context_bytes;
   match env.convert_byte_array(ctx) {
-      Err(_) => panic!("Failed converting `ctx` to byte array"),
-      Ok(bc) => context_bytes = bc,
+    Err(_) => { handle_err!("Failed converting `ctx` to byte array", env); }
+    Ok(bc) => context_bytes = bc,
   };
 
   // convert JSON string to JSON
@@ -485,8 +485,8 @@ pub extern "system" fn Java_life_nuggets_rs_Bbs_bbs_1sign(
 ) -> jstring {
   let context_bytes;
   match env.convert_byte_array(ctx) {
-      Err(_) => panic!("Failed converting `ctx` to byte array"),
-      Ok(bc) => context_bytes = bc,
+    Err(_) => { handle_err!("Failed converting `ctx` to byte array", env); }
+    Ok(bc) => context_bytes = bc,
   };
 
   // convert JSON string to JSON
@@ -570,8 +570,8 @@ pub extern "system" fn Java_life_nuggets_rs_Bbs_bbs_1create_1proof(
 ) -> jstring {
   let context_bytes;
   match env.convert_byte_array(ctx) {
-      Err(_) => panic!("Failed converting `ctx` to byte array"),
-      Ok(bc) => context_bytes = bc,
+    Err(_) => { handle_err!("Failed converting `ctx` to byte array", env); }
+    Ok(bc) => context_bytes = bc,
   };
 
   // convert JSON string to JSON
@@ -697,8 +697,8 @@ pub extern "system" fn Java_life_nuggets_rs_Bbs_bbs_1verify_1proof(
 ) -> jstring {
   let context_bytes;
   match env.convert_byte_array(ctx) {
-      Err(_) => panic!("Failed converting `ctx` to byte array"),
-      Ok(bc) => context_bytes = bc,
+    Err(_) => { handle_err!("Failed converting `ctx` to byte array", env); }
+    Ok(bc) => context_bytes = bc,
   };
 
   // convert JSON string to JSON
@@ -775,8 +775,8 @@ pub extern "system" fn Java_life_nuggets_rs_Bbs_bls_1verify_1proof(
 ) -> jstring {
   let context_bytes;
   match env.convert_byte_array(ctx) {
-      Err(_) => panic!("Failed converting `ctx` to byte array"),
-      Ok(bc) => context_bytes = bc,
+    Err(_) => { handle_err!("Failed converting `ctx` to byte array", env); }
+    Ok(bc) => context_bytes = bc,
   };
 
   // convert JSON string to JSON
@@ -862,8 +862,8 @@ pub extern "system" fn Java_life_nuggets_rs_Bbs_bbs_1blind_1signature_1commitmen
 ) -> jstring {
   let blinding_commitment_bytes;
   match env.convert_byte_array(blinding_commitment) {
-      Err(_) => panic!("Failed converting `blinding_commitment` to byte array"),
-      Ok(bc) => blinding_commitment_bytes = bc,
+    Err(_) => { handle_err!("Failed converting `ctx` to byte array", env); }
+    Ok(bc) => blinding_commitment_bytes = bc,
   };
   
   // convert JSON string to JSON
@@ -969,8 +969,8 @@ pub extern "system" fn Java_life_nuggets_rs_Bbs_bbs_1verify_1blind_1signature_1p
 ) -> jstring {
   let commitment_context_bytes;
   match env.convert_byte_array(commitment_context) {
-      Err(_) => panic!("Failed converting `commitment_context` to byte array"),
-      Ok(bc) => commitment_context_bytes = bc,
+    Err(_) => { handle_err!("Failed converting `ctx` to byte array", env); }
+    Ok(bc) => commitment_context_bytes = bc,
   };
   
   // convert JSON string to JSON
@@ -1097,8 +1097,8 @@ pub extern "system" fn Java_life_nuggets_rs_Bbs_bbs_1blind_1sign(
 ) -> jstring {
   let blind_sign_context_bytes;
   match env.convert_byte_array(blind_sign_context) {
-      Err(_) => panic!("Failed converting `blind_sign_context` to byte array"),
-      Ok(bc) => blind_sign_context_bytes = bc,
+    Err(_) => { handle_err!("Failed converting `ctx` to byte array", env); }
+    Ok(bc) => blind_sign_context_bytes = bc,
   };
 
   // convert JSON string to JSON
@@ -1186,6 +1186,7 @@ pub extern "system" fn Java_life_nuggets_rs_Bbs_bbs_1blind_1sign(
   match blind_sign_context_json["commitment"].as_str() {
     Some(commitment_b64) => {
       let commitment_b64 = base64::decode(commitment_b64).unwrap().to_vec();
+
       commitment = Commitment::from(*array_ref![
         commitment_b64,
         0,
@@ -1226,8 +1227,8 @@ pub extern "system" fn Java_life_nuggets_rs_Bbs_bbs_1get_1unblinded_1signature(
 ) -> jstring {
   let unblind_signature_context_bytes;
   match env.convert_byte_array(unblind_signature_context) {
-      Err(_) => panic!("Failed converting `unblind_signature_context` to byte array"),
-      Ok(bc) => unblind_signature_context_bytes = bc,
+    Err(_) => { handle_err!("Failed converting `ctx` to byte array", env); }
+    Ok(bc) => unblind_signature_context_bytes = bc,
   };
 
   // convert JSON string to JSON
@@ -1297,8 +1298,8 @@ pub extern "system" fn Java_life_nuggets_rs_Bbs_bbs_1verify(
 ) -> jstring {
   let verify_signature_context_bytes;
   match env.convert_byte_array(verify_signature_context) {
-      Err(_) => panic!("Failed converting `verify_signature_context` to byte array"),
-      Ok(bc) => verify_signature_context_bytes = bc,
+    Err(_) => { handle_err!("Failed converting `ctx` to byte array", env); }
+    Ok(bc) => verify_signature_context_bytes = bc,
   };
 
   // convert JSON string to JSON
@@ -1364,6 +1365,6 @@ pub extern "system" fn Java_life_nuggets_rs_Bbs_bbs_1verify(
         Err(_) => { handle_err!("Failed to stringify verification outcome", env); }
       }
     },
-    Err(_) => { handle_err!("Unable to verify messages", env); }
+    Err(error) => { handle_err!(format!("Unable to verify messages: {}", error), env); }
   }
 }
