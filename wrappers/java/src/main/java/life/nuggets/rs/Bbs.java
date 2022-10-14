@@ -32,7 +32,6 @@ public class Bbs {
   private static native String bbs_get_unblinded_signature(byte[] context);
   private static native String bbs_verify(byte[] context);
 
-  // The rest is just regular ol' Java!
   public static void main(String[] args) {
 
     String context_empty = "";

@@ -18,6 +18,167 @@ void string2ByteArray(char* input, BYTE* output)
     }
 }
 
+void generateBlindedG1Key(char* context)
+{
+  JsonString json_string;
+  ByteArray contextBuffer;
+
+  // populate blinding context buffer
+  contextBuffer.length = strlen(context);
+  BYTE contextBufferData[contextBuffer.length];
+  string2ByteArray(context, contextBufferData);
+  contextBuffer.data = contextBufferData;
+
+  int outcome = bls_generate_blinded_g1_key(contextBuffer, &json_string);
+
+  if (outcome == 0)
+  {
+    printf("\nGenerated Blinded G1 Key:\n%s\n\n", json_string.ptr);
+  } else {
+    printf("\nBlinded G1 Key Generation Error:\n%s\n\n", json_string.ptr);
+  }
+
+  ffi_bbs_signatures_free_json_string(json_string);
+}
+
+void generateBlindedG2Key(char* context)
+{
+  JsonString json_string;
+  ByteArray contextBuffer;
+
+  // populate blinding context buffer
+  contextBuffer.length = strlen(context);
+  BYTE contextBufferData[contextBuffer.length];
+  string2ByteArray(context, contextBufferData);
+  contextBuffer.data = contextBufferData;
+
+  int outcome = bls_generate_blinded_g2_key(contextBuffer, &json_string);
+
+  if (outcome == 0)
+  {
+    printf("\nGenerated Blinded G2 Key:\n%s\n\n", json_string.ptr);
+  } else {
+    printf("\nBlinded G2 Key Generation Error:\n%s\n\n", json_string.ptr);
+  }
+
+  ffi_bbs_signatures_free_json_string(json_string);
+}
+
+void generateG1Key(char* context)
+{
+  JsonString json_string;
+  ByteArray contextBuffer;
+
+  // populate blinding context buffer
+  contextBuffer.length = strlen(context);
+  BYTE contextBufferData[contextBuffer.length];
+  string2ByteArray(context, contextBufferData);
+  contextBuffer.data = contextBufferData;
+
+  int outcome = bls_generate_g1_key(contextBuffer, &json_string);
+
+  if (outcome == 0)
+  {
+    printf("\nGenerated G1 Key:\n%s\n\n", json_string.ptr);
+  } else {
+    printf("\nG1 Key Generation Error:\n%s\n\n", json_string.ptr);
+  }
+
+  ffi_bbs_signatures_free_json_string(json_string);
+}
+
+void generateG2Key(char* context)
+{
+  JsonString json_string;
+  ByteArray contextBuffer;
+
+  // populate blinding context buffer
+  contextBuffer.length = strlen(context);
+  BYTE contextBufferData[contextBuffer.length];
+  string2ByteArray(context, contextBufferData);
+  contextBuffer.data = contextBufferData;
+
+  int outcome = bls_generate_g2_key(contextBuffer, &json_string);
+
+  if (outcome == 0)
+  {
+    printf("\nGenerated G2 Key:\n%s\n\n", json_string.ptr);
+  } else {
+    printf("\nG2 Key Generation Error:\n%s\n\n", json_string.ptr);
+  }
+
+  ffi_bbs_signatures_free_json_string(json_string);
+}
+
+void blsSecretKeyToBbsPublicKey(char* context)
+{
+  JsonString json_string;
+  ByteArray contextBuffer;
+
+  // populate blinding context buffer
+  contextBuffer.length = strlen(context);
+  BYTE contextBufferData[contextBuffer.length];
+  string2ByteArray(context, contextBufferData);
+  contextBuffer.data = contextBufferData;
+
+  int outcome = bls_secret_key_to_bbs_key(contextBuffer, &json_string);
+
+  if (outcome == 0)
+  {
+    printf("\nBLS Secret Key converted:\n%s\n\n", json_string.ptr);
+  } else {
+    printf("\nBLS Secret Key conversion Error:\n%s\n\n", json_string.ptr);
+  }
+
+  ffi_bbs_signatures_free_json_string(json_string);
+}
+
+void blsPublicKeyToBbsPublicKey(char* context)
+{
+  JsonString json_string;
+  ByteArray contextBuffer;
+
+  // populate blinding context buffer
+  contextBuffer.length = strlen(context);
+  BYTE contextBufferData[contextBuffer.length];
+  string2ByteArray(context, contextBufferData);
+  contextBuffer.data = contextBufferData;
+
+  int outcome = bls_public_key_to_bbs_key(contextBuffer, &json_string);
+
+  if (outcome == 0)
+  {
+    printf("\nBLS Public Key converted:\n%s\n\n", json_string.ptr);
+  } else {
+    printf("\nBLS Public Key conversion Error:\n%s\n\n", json_string.ptr);
+  }
+
+  ffi_bbs_signatures_free_json_string(json_string);
+}
+
+void bbsSign(char* context)
+{
+  JsonString json_string;
+  ByteArray contextBuffer;
+
+  // populate blinding context buffer
+  contextBuffer.length = strlen(context);
+  BYTE contextBufferData[contextBuffer.length];
+  string2ByteArray(context, contextBufferData);
+  contextBuffer.data = contextBufferData;
+
+  int outcome = bbs_sign(contextBuffer, &json_string);
+
+  if (outcome == 0)
+  {
+    printf("\nBBS Sign:\n%s\n\n", json_string.ptr);
+  } else {
+    printf("\nBBS Sign Error:\n%s\n\n", json_string.ptr);
+  }
+
+  ffi_bbs_signatures_free_json_string(json_string);
+}
+
 void blindSignatureCommitment(char* blinding_context)
 {
   JsonString json_string;
@@ -135,16 +296,85 @@ void verifySignature(char* verify_signature_context)
 
 int main()
 {
+  char* context_empty = "";
+  char* context_empty_obj = "{}";
+
+  // ----- Generate Blinded G1 key ----------------------------------------------------------------
+  
+  char* context_withSeed = "{\"seed\":\"H297BpoOgkfpXcxr1fJyQRiNx1+ZekeQ+OU/AYV/lVxaPXXhFBIbxeIU8kIAAX68cwQ=\"}";
+  generateBlindedG1Key(context_empty);
+  generateBlindedG1Key(context_empty_obj);
+  generateBlindedG1Key(context_withSeed);
+
+
+  // ----- Generate Blinded G2 key ----------------------------------------------------------------
+  
+  generateBlindedG2Key(context_empty);
+  generateBlindedG2Key(context_empty_obj);
+  generateBlindedG2Key(context_withSeed);
+
+
+  // ----- Generate G1 key ------------------------------------------------------------------------
+  
+  generateG1Key(context_empty);
+  generateG1Key(context_empty_obj);
+  generateG1Key(context_withSeed);
+
+
+  // ----- Generate G2 key ------------------------------------------------------------------------
+  
+  generateG2Key(context_empty);
+  generateG2Key(context_empty_obj);
+  generateG2Key(context_withSeed);
+
+
+  // ----- BLS Secret Key to BBS Public Key -------------------------------------------------------
+
+  char* context_withMsgCount = "{\"message_count\":3}";
+  char* context_withSecretKey = "{\"message_count\":3,\"secret_key\":\"Cm550dHeqo5I/dVC/bXD9s5Cx8vnyhV/gm7KO5UuviE=\"}";
+  blsSecretKeyToBbsPublicKey(context_empty);
+  blsSecretKeyToBbsPublicKey(context_empty_obj);
+  blsSecretKeyToBbsPublicKey(context_withMsgCount);
+  blsSecretKeyToBbsPublicKey(context_withSecretKey);
+
+
+  // ----- BLS Public Key to BBS Public Key -------------------------------------------------------
+
+  char* context_withPublicKey = "{\"message_count\":3,\"public_key\":\"pQro1uqpvUPM31sr+jHffz7+KJIpA3kFen4SoKATURRgo7pk582aaqIxSinWsgHDB9j9dwxYRbC3q2ZmICR2OVMX3FHW9LZV2QAauTYFn7gEra1BSeKhdKDpzBxPjI36\"}";
+  blsPublicKeyToBbsPublicKey(context_empty);
+  blsPublicKeyToBbsPublicKey(context_empty_obj);
+  blsPublicKeyToBbsPublicKey(context_withMsgCount);
+  blsPublicKeyToBbsPublicKey(context_withPublicKey);
+
+
+  // ----- BBS Sign -------------------------------------------------------------------------------
+
+  char* context_withSecretKeyOnly = "{\"secret_key\":\"Cm550dHeqo5I/dVC/bXD9s5Cx8vnyhV/gm7KO5UuviE=\"}";
+  char* context_withKeysSet = "{\"secret_key\":\"Cm550dHeqo5I/dVC/bXD9s5Cx8vnyhV/gm7KO5UuviE=\",\"public_key\":\"pQro1uqpvUPM31sr+jHffz7+KJIpA3kFen4SoKATURRgo7pk582aaqIxSinWsgHDB9j9dwxYRbC3q2ZmICR2OVMX3FHW9LZV2QAauTYFn7gEra1BSeKhdKDpzBxPjI36rAn7qKBJ+zoJjiSDxFiBlgyjPKRQzw8R6VHRJ62cUPEBUxx8mk1FpuDBdeXA8NpgAAAAA5PIYj94+VZFiDLKmgZyHmxOlO7EotGWxuSh76d51g3LhfLgz/ZvY647AiDghQwuGY5WCek2c+ag44eKZnSs3qXUCzRZsKo+r2ax3iZoaVI0+y7U4v1T+ak6CNwiLEwTvrHv85q7BeuXiARgPPsjtGuOKpHguUYfRgPGnALw6UYWTwpqhwo2/uv5IRqjVgwEkA==\"}";
+  char* context_withMessagesSet = "{\"secret_key\":\"Cm550dHeqo5I/dVC/bXD9s5Cx8vnyhV/gm7KO5UuviE=\",\"public_key\":\"pQro1uqpvUPM31sr+jHffz7+KJIpA3kFen4SoKATURRgo7pk582aaqIxSinWsgHDB9j9dwxYRbC3q2ZmICR2OVMX3FHW9LZV2QAauTYFn7gEra1BSeKhdKDpzBxPjI36rAn7qKBJ+zoJjiSDxFiBlgyjPKRQzw8R6VHRJ62cUPEBUxx8mk1FpuDBdeXA8NpgAAAAA5PIYj94+VZFiDLKmgZyHmxOlO7EotGWxuSh76d51g3LhfLgz/ZvY647AiDghQwuGY5WCek2c+ag44eKZnSs3qXUCzRZsKo+r2ax3iZoaVI0+y7U4v1T+ak6CNwiLEwTvrHv85q7BeuXiARgPPsjtGuOKpHguUYfRgPGnALw6UYWTwpqhwo2/uv5IRqjVgwEkA==\",\"messages\":[\"bWVzc2FnZTE=\",\"bWVzc2FnZTI=\",\"bWVzc2FnZTM=\"]}";
+  bbsSign(context_empty);
+  bbsSign(context_empty_obj);
+  bbsSign(context_withSecretKeyOnly);
+  bbsSign(context_withKeysSet);
+  bbsSign(context_withMessagesSet);
+
+
+  // ----- BBS Verify Signature -------------------------------------------------------------------
+
+  char* context_verifySignature = "{\"public_key\":\"pQro1uqpvUPM31sr+jHffz7+KJIpA3kFen4SoKATURRgo7pk582aaqIxSinWsgHDB9j9dwxYRbC3q2ZmICR2OVMX3FHW9LZV2QAauTYFn7gEra1BSeKhdKDpzBxPjI36rAn7qKBJ+zoJjiSDxFiBlgyjPKRQzw8R6VHRJ62cUPEBUxx8mk1FpuDBdeXA8NpgAAAAA5PIYj94+VZFiDLKmgZyHmxOlO7EotGWxuSh76d51g3LhfLgz/ZvY647AiDghQwuGY5WCek2c+ag44eKZnSs3qXUCzRZsKo+r2ax3iZoaVI0+y7U4v1T+ak6CNwiLEwTvrHv85q7BeuXiARgPPsjtGuOKpHguUYfRgPGnALw6UYWTwpqhwo2/uv5IRqjVgwEkA==\",\"signature\":\"q4GNvjY8j6f52z6JvDosufjDID5crfLLmxRat7BKRvMUIbKlRIRVqerA8nfnVYfUBuRyhAm5a84zBSAWhUUz2pqicLmABrfWMlTziZN9zm5s8D8nBIox3GKgh/yqUe4JP9WisLyY6xvA0t60ABhhzg==\",\"messages\":[\"bWVzc2FnZTE=\",\"bWVzc2FnZTI=\",\"bWVzc2FnZTM=\"]}";
+  verifySignature(context_empty);
+  verifySignature(context_empty_obj);
+  verifySignature(context_verifySignature);
+
+
   // ----- Blind Signature Commitment -------------------------------------------------------------
 
   char* blinding_context = "{\"public_key\":\"pQro1uqpvUPM31sr+jHffz7+KJIpA3kFen4SoKATURRgo7pk582aaqIxSinWsgHDB9j9dwxYRbC3q2ZmICR2OVMX3FHW9LZV2QAauTYFn7gEra1BSeKhdKDpzBxPjI36rAn7qKBJ+zoJjiSDxFiBlgyjPKRQzw8R6VHRJ62cUPEBUxx8mk1FpuDBdeXA8NpgAAAAA5PIYj94+VZFiDLKmgZyHmxOlO7EotGWxuSh76d51g3LhfLgz/ZvY647AiDghQwuGY5WCek2c+ag44eKZnSs3qXUCzRZsKo+r2ax3iZoaVI0+y7U4v1T+ak6CNwiLEwTvrHv85q7BeuXiARgPPsjtGuOKpHguUYfRgPGnALw6UYWTwpqhwo2/uv5IRqjVgwEkA==\",\"nonce\":\"EqamqgeL3rJR/NNSaG+0vIBUrJ4YibkNMmeXVjjrpPk=\",\"blinded\":[0,1],\"messages\":[\"bWVzc2FnZTE=\",\"bWVzc2FnZTI=\"]}";
   blindSignatureCommitment(blinding_context);
 
-  char* blinding_context_empty = "";
-  blindSignatureCommitment(blinding_context_empty);
+  blindSignatureCommitment(context_empty);
 
-  char* blinding_context_empty_obj = "{}";
-  blindSignatureCommitment(blinding_context_empty_obj);
+  blindSignatureCommitment(context_empty_obj);
 
   char* blinding_context_missing_blinded = "{\"public_key\":\"pQro1uqpvUPM31sr+jHffz7+KJIpA3kFen4SoKATURRgo7pk582aaqIxSinWsgHDB9j9dwxYRbC3q2ZmICR2OVMX3FHW9LZV2QAauTYFn7gEra1BSeKhdKDpzBxPjI36rAn7qKBJ+zoJjiSDxFiBlgyjPKRQzw8R6VHRJ62cUPEBUxx8mk1FpuDBdeXA8NpgAAAAA5PIYj94+VZFiDLKmgZyHmxOlO7EotGWxuSh76d51g3LhfLgz/ZvY647AiDghQwuGY5WCek2c+ag44eKZnSs3qXUCzRZsKo+r2ax3iZoaVI0+y7U4v1T+ak6CNwiLEwTvrHv85q7BeuXiARgPPsjtGuOKpHguUYfRgPGnALw6UYWTwpqhwo2/uv5IRqjVgwEkA==\"}";
   blindSignatureCommitment(blinding_context_missing_blinded);
