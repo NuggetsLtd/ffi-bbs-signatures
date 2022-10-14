@@ -1,16 +1,3 @@
-/*
- * Copyright 2020 - MATTR Limited
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *     http://www.apache.org/licenses/LICENSE-2.0
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 import { bls12381toBbs } from "./bls12381toBbs";
 import {
   BbsBlindSignRequest,
@@ -25,6 +12,7 @@ import {
   BbsBlindSignContext,
   BbsVerifyResult,
 } from "./types";
+import { wrapFFI, base64ToUint8Array, arrayBufferToBase64 } from "./util";
 
 /**
  * @ignore
@@ -47,15 +35,19 @@ export const BBS_SIGNATURE_LENGTH = 112;
  */
 export const sign = async (request: BbsSignRequest): Promise<Uint8Array> => {
   const { keyPair, messages } = request;
-  const messageBuffers = messages.map((_) => _.buffer);
+  const messagesBase64 = messages.map((_) => arrayBufferToBase64(_.buffer));
   try {
-    return new Uint8Array(
-      bbs.bbs_sign({
-        publicKey: keyPair.publicKey.buffer,
-        secretKey: keyPair.secretKey?.buffer as ArrayBuffer,
-        messages: messageBuffers,
-      })
-    );
+    const { signature, error } = wrapFFI(bbs.bbs_sign, {
+      public_key: arrayBufferToBase64(keyPair.publicKey.buffer),
+      secret_key: arrayBufferToBase64(keyPair.secretKey?.buffer as ArrayBuffer),
+      messages: messagesBase64,
+    })
+
+    if(error) {
+      throw new Error(error.message)
+    }
+    
+    return base64ToUint8Array(signature)
   } catch {
     throw new Error("Failed to sign");
   }
@@ -70,15 +62,19 @@ export const sign = async (request: BbsSignRequest): Promise<Uint8Array> => {
 export const blsSign = async (request: BlsBbsSignRequest): Promise<Uint8Array> => {
   const { keyPair, messages } = request;
   const bbsKeyPair = await bls12381toBbs({ keyPair, messageCount: messages.length });
-  const messageBuffers = messages.map((_) => _.buffer);
+  const messagesBase64 = messages.map((_) => arrayBufferToBase64(_.buffer));
   try {
-    return new Uint8Array(
-      bbs.bbs_sign({
-        publicKey: bbsKeyPair.publicKey.buffer,
-        secretKey: bbsKeyPair.secretKey?.buffer as ArrayBuffer,
-        messages: messageBuffers,
-      })
-    );
+    const { signature, error } = wrapFFI(bbs.bbs_sign, {
+      public_key: arrayBufferToBase64(bbsKeyPair.publicKey.buffer),
+      secret_key: arrayBufferToBase64(bbsKeyPair.secretKey?.buffer as ArrayBuffer),
+      messages: messagesBase64,
+    })
+
+    if(error) {
+      throw new Error(error.message)
+    }
+    
+    return base64ToUint8Array(signature)
   } catch {
     throw new Error("Failed to sign");
   }
@@ -92,16 +88,22 @@ export const blsSign = async (request: BlsBbsSignRequest): Promise<Uint8Array> =
  */
 export const verify = async (request: BbsVerifyRequest): Promise<BbsVerifyResult> => {
   const { publicKey, signature, messages } = request;
-  const messageBuffers = messages.map((_) => _.buffer);
+  const messagesBase64 = messages.map((_) => arrayBufferToBase64(_.buffer));
+
   try {
-    const result = bbs.bbs_verify({
-      publicKey: publicKey.buffer,
-      signature: signature.buffer,
-      messages: messageBuffers,
+    const { verified, error } = wrapFFI(bbs.bbs_verify, {
+      public_key: arrayBufferToBase64(publicKey.buffer),
+      signature: arrayBufferToBase64(signature.buffer),
+      messages: messagesBase64,
     });
-    return { verified: result };
-  } catch (e) {
-    return { verified: false, error: `${e.name}: ${e.message}` };
+
+    if(error) {
+      throw new Error(error.message)
+    }
+
+    return { verified }
+  } catch (e: any) {
+    return { verified: false, error: `${e.name}: ${e.message}` }
   }
 };
 
@@ -115,15 +117,20 @@ export const blsVerify = async (request: BlsBbsVerifyRequest): Promise<BbsVerify
   try {
     const { publicKey, signature, messages } = request;
     const bbsKeyPair = await bls12381toBbs({ keyPair: { publicKey }, messageCount: messages.length });
-    const messageBuffers = messages.map((_) => _.buffer);
+    const messagesBase64 = messages.map((_) => arrayBufferToBase64(_.buffer))
 
-    const result = bbs.bbs_verify({
-      publicKey: bbsKeyPair.publicKey.buffer,
-      signature: signature.buffer,
-      messages: messageBuffers,
+    const { verified, error } = wrapFFI(bbs.bbs_verify, {
+      public_key: arrayBufferToBase64(bbsKeyPair.publicKey.buffer),
+      signature: arrayBufferToBase64(signature.buffer),
+      messages: messagesBase64,
     });
-    return { verified: result };
-  } catch (e) {
+
+    if(error) {
+      throw new Error(error.message)
+    }
+
+    return { verified }
+  } catch (e: any) {
     return { verified: false, error: `${e.name}: ${e.message}` };
   }
 };
@@ -136,17 +143,22 @@ export const blsVerify = async (request: BlsBbsVerifyRequest): Promise<BbsVerify
  */
 export const createProof = async (request: BbsCreateProofRequest): Promise<Uint8Array> => {
   const { publicKey, signature, messages, nonce, revealed } = request;
-  const messageBuffers = messages.map((_) => _.buffer);
+  const messagesBase64 = messages.map((_) => arrayBufferToBase64(_.buffer))
+
   try {
-    return new Uint8Array(
-      bbs.bbs_create_proof({
-        nonce: nonce.buffer,
+    const { proof, error } = wrapFFI(bbs.bbs_create_proof, {
+        nonce: arrayBufferToBase64(nonce.buffer),
         revealed,
-        publicKey: publicKey.buffer,
-        signature: signature.buffer,
-        messages: messageBuffers,
+        public_key: arrayBufferToBase64(publicKey.buffer),
+        signature: arrayBufferToBase64(signature.buffer),
+        messages: messagesBase64,
       })
-    );
+
+      if(error) {
+        throw new Error(error.message)
+      }
+  
+      return base64ToUint8Array(proof)
   } catch (ex) {
     throw new Error("Failed to create proof");
   }
@@ -161,17 +173,22 @@ export const createProof = async (request: BbsCreateProofRequest): Promise<Uint8
 export const blsCreateProof = async (request: BbsCreateProofRequest): Promise<Uint8Array> => {
   const { publicKey, signature, messages, nonce, revealed } = request;
   const bbsKeyPair = await bls12381toBbs({ keyPair: { publicKey }, messageCount: messages.length });
-  const messageBuffers = messages.map((_) => _.buffer);
+  const messagesBase64 = messages.map((_) => arrayBufferToBase64(_.buffer))
+
   try {
-    return new Uint8Array(
-      bbs.bbs_create_proof({
-        nonce: nonce.buffer,
-        revealed,
-        publicKey: bbsKeyPair.publicKey.buffer,
-        signature: signature.buffer,
-        messages: messageBuffers,
-      })
-    );
+    const { proof, error } = wrapFFI(bbs.bbs_create_proof, {
+      nonce: arrayBufferToBase64(nonce.buffer),
+      revealed,
+      public_key: arrayBufferToBase64(bbsKeyPair.publicKey.buffer),
+      signature: arrayBufferToBase64(signature.buffer),
+      messages: messagesBase64,
+    })
+
+    if(error) {
+      throw new Error(error.message)
+    }
+
+    return base64ToUint8Array(proof)
   } catch (ex) {
     throw new Error("Failed to create proof");
   }
@@ -185,16 +202,22 @@ export const blsCreateProof = async (request: BbsCreateProofRequest): Promise<Ui
  */
 export const verifyProof = async (request: BbsVerifyProofRequest): Promise<BbsVerifyResult> => {
   const { publicKey, proof, messages, nonce } = request;
-  const messageBuffers = messages.map((_) => _.buffer);
+  const messagesBase64 = messages.map((_) => arrayBufferToBase64(_.buffer))
+
   try {
-    const result = bbs.bbs_verify_proof({
-      nonce: nonce.buffer,
-      publicKey: publicKey.buffer,
-      proof: proof.buffer,
-      messages: messageBuffers,
+    const { verified, error } = wrapFFI(bbs.bbs_verify_proof, {
+      nonce: arrayBufferToBase64(nonce.buffer),
+      public_key: arrayBufferToBase64(publicKey.buffer),
+      proof: arrayBufferToBase64(proof.buffer),
+      messages: messagesBase64,
     });
-    return { verified: result };
-  } catch (e) {
+
+    if(error) {
+      throw new Error(error.message)
+    }
+
+    return { verified }
+  } catch (e: any) {
     return { verified: false, error: `${e.name}: ${e.message}` };
   }
 };
@@ -208,15 +231,21 @@ export const verifyProof = async (request: BbsVerifyProofRequest): Promise<BbsVe
 export const blsVerifyProof = async (request: BbsVerifyProofRequest): Promise<BbsVerifyResult> => {
   try {
     const { publicKey, proof, messages, nonce } = request;
-    const messageBuffers = messages.map((_) => _.buffer);
-    const result = bbs.bls_verify_proof({
-      nonce: nonce.buffer,
-      publicKey: publicKey.buffer,
-      proof: proof.buffer,
-      messages: messageBuffers,
+    const messagesBase64 = messages.map((_) => arrayBufferToBase64(_.buffer))
+
+    const { verified, error } = wrapFFI(bbs.bls_verify_proof, {
+      nonce: arrayBufferToBase64(nonce.buffer),
+      public_key: arrayBufferToBase64(publicKey.buffer),
+      proof: arrayBufferToBase64(proof.buffer),
+      messages: messagesBase64,
     });
-    return { verified: result };
-  } catch (e) {
+
+    if(error) {
+      throw new Error(error.message)
+    }
+
+    return { verified }
+  } catch (e: any) {
     return { verified: false, error: `${e.name}: ${e.message}` };
   }
 };
@@ -231,20 +260,25 @@ export const commitmentForBlindSignRequest = async (
   request: BbsBlindSignContextRequest
 ): Promise<BbsBlindSignContext> => {
   const { publicKey, messages, blinded, nonce } = request;
-  const messageBuffers = messages.map((_) => _.buffer);
+  const messagesBase64 = messages.map((_) => arrayBufferToBase64(_.buffer))
+
   try {
-    const { commitment , challengeHash, blindingFactor, proofOfHiddenMessages } = bbs.bbs_blind_signature_commitment({
-      publicKey: publicKey.buffer,
-      messages: messageBuffers,
+    const { commitment, challenge_hash, blinding_factor, proof_of_hidden_messages, error } = wrapFFI(bbs.bbs_blind_signature_commitment, {
+      public_key: arrayBufferToBase64(publicKey.buffer),
+      messages: messagesBase64,
       blinded,
-      nonce: nonce.buffer,
-    });
+      nonce: arrayBufferToBase64(nonce.buffer),
+    })
+
+    if(error) {
+      throw new Error(error.message)
+    }
 
     return {
-      commitment: new Uint8Array(commitment),
-      challengeHash: new Uint8Array(challengeHash),
-      blindingFactor: new Uint8Array(blindingFactor),
-      proofOfHiddenMessages: new Uint8Array(proofOfHiddenMessages),
+      commitment: base64ToUint8Array(commitment),
+      challengeHash: base64ToUint8Array(challenge_hash),
+      blindingFactor: base64ToUint8Array(blinding_factor),
+      proofOfHiddenMessages: base64ToUint8Array(proof_of_hidden_messages),
     }
   } catch {
     throw new Error("Failed to generate commitment");
@@ -260,14 +294,20 @@ export const commitmentForBlindSignRequest = async (
 export const verifyBlindSignContext = async (request: BbsVerifyBlindSignContextRequest): Promise<boolean> => {
   const { commitment, proofOfHiddenMessages, challengeHash, publicKey, blinded, nonce } = request;
 
-  return bbs.bbs_verify_blind_signature_proof({
-    commitment: commitment.buffer,
-    proofOfHiddenMessages: proofOfHiddenMessages.buffer,
-    challengeHash: challengeHash.buffer,
-    publicKey: publicKey.buffer,
+  const { verified, error } = wrapFFI(bbs.bbs_verify_blind_signature_proof, {
+    commitment: arrayBufferToBase64(commitment.buffer),
+    proof_of_hidden_messages: arrayBufferToBase64(proofOfHiddenMessages.buffer),
+    challenge_hash: arrayBufferToBase64(challengeHash.buffer),
+    public_key: arrayBufferToBase64(publicKey.buffer),
     blinded,
-    nonce: nonce.buffer,
-  });
+    nonce: arrayBufferToBase64(nonce.buffer),
+  })
+
+  if(error) {
+    return false
+  }
+
+  return verified
 };
 
 /**
@@ -278,17 +318,22 @@ export const verifyBlindSignContext = async (request: BbsVerifyBlindSignContextR
  */
 export const blindSign = async (request: BbsBlindSignRequest): Promise<Uint8Array> => {
   const { commitment, publicKey, secretKey, messages, known } = request;
-  const messageBuffers = messages.map((_) => _.buffer);
+  const messagesBase64 = messages.map((_) => arrayBufferToBase64(_.buffer))
+
   try {
-    return new Uint8Array(
-      bbs.bbs_blind_sign({
-        commitment: commitment.buffer,
-        publicKey: publicKey.buffer,
-        secretKey: secretKey.buffer,
-        messages: messageBuffers,
-        known
-      })
-    );
+    const { blind_signature, error } = wrapFFI(bbs.bbs_blind_sign, {
+      commitment: arrayBufferToBase64(commitment.buffer),
+      public_key: arrayBufferToBase64(publicKey.buffer),
+      secret_key: arrayBufferToBase64(secretKey.buffer),
+      messages: messagesBase64,
+      known
+    })
+
+    if(error) {
+      throw new Error(error.message)
+    }
+
+    return base64ToUint8Array(blind_signature)
   } catch {
     throw new Error("Failed to sign");
   }
@@ -303,9 +348,16 @@ export const blindSign = async (request: BbsBlindSignRequest): Promise<Uint8Arra
  */
 export const unblindSignature = async (blindSignature: Uint8Array, blindingFactor: Uint8Array): Promise<Uint8Array> => {
   try {
-    return new Uint8Array(
-      bbs.bbs_get_unblinded_signature(blindSignature.buffer, blindingFactor.buffer)
-    );
+    const { signature, error } = wrapFFI(bbs.bbs_get_unblinded_signature, {
+      blind_signature: arrayBufferToBase64(blindSignature.buffer),
+      blinding_factor: arrayBufferToBase64(blindingFactor.buffer)
+    })
+
+    if(error) {
+      throw new Error(error.message)
+    }
+
+    return base64ToUint8Array(signature)
   } catch {
     throw new Error("Failed to unblind signature");
   }

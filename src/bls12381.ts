@@ -1,17 +1,5 @@
-/*
- * Copyright 2020 - MATTR Limited
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *     http://www.apache.org/licenses/LICENSE-2.0
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 import { BlsKeyPair, BlindedBlsKeyPair } from "./types";
+import { wrapFFI, base64ToUint8Array, arrayBufferToBase64 } from "./util";
 
 /**
  * @ignore
@@ -28,10 +16,10 @@ const bbs = require(path.resolve(path.join(__dirname, "../native/index.node")));
  * @returns A BlsKeyPair
  */
 export const generateBls12381G1KeyPair = async (seed?: Uint8Array): Promise<Required<BlsKeyPair>> => {
-  const result = seed ? bbs.bls_generate_g1_key(seed?.buffer) : bbs.bls_generate_g1_key();
+  const result = wrapFFI(bbs.bls_generate_g1_key, seed ? { seed: arrayBufferToBase64(seed?.buffer) } : {});
   return {
-    publicKey: new Uint8Array(result.publicKey),
-    secretKey: new Uint8Array(result.secretKey),
+    publicKey: base64ToUint8Array(result.public_key),
+    secretKey: base64ToUint8Array(result.secret_key),
   };
 };
 
@@ -43,11 +31,11 @@ export const generateBls12381G1KeyPair = async (seed?: Uint8Array): Promise<Requ
  * @returns A BlindedBlsKeyPair
  */
 export const generateBlindedBls12381G1KeyPair = async (seed?: Uint8Array): Promise<Required<BlindedBlsKeyPair>> => {
-  const result = seed ? bbs.bls_generate_blinded_g1_key(seed?.buffer) : bbs.bls_generate_blinded_g1_key();
+  const result = wrapFFI(bbs.bls_generate_blinded_g1_key, seed ? { seed: arrayBufferToBase64(seed?.buffer) } : {});
   return {
-    publicKey: new Uint8Array(result.publicKey),
-    secretKey: new Uint8Array(result.secretKey),
-    blindingFactor: new Uint8Array(result.blindingFactor),
+    publicKey: base64ToUint8Array(result.public_key),
+    secretKey: base64ToUint8Array(result.secret_key),
+    blindingFactor: base64ToUint8Array(result.blinding_factor),
   };
 };
 
@@ -58,10 +46,11 @@ export const generateBlindedBls12381G1KeyPair = async (seed?: Uint8Array): Promi
  * @returns A BlsKeyPair
  */
 export const generateBls12381G2KeyPair = async (seed?: Uint8Array): Promise<Required<BlsKeyPair>> => {
-  const result = seed ? bbs.bls_generate_g2_key(seed?.buffer) : bbs.bls_generate_g2_key();
+  const result = wrapFFI(bbs.bls_generate_g2_key, seed ? { seed: arrayBufferToBase64(seed?.buffer) } : {});
+
   return {
-    publicKey: new Uint8Array(result.publicKey),
-    secretKey: new Uint8Array(result.secretKey),
+    publicKey: base64ToUint8Array(result.public_key),
+    secretKey: base64ToUint8Array(result.secret_key),
   };
 };
 
@@ -73,10 +62,10 @@ export const generateBls12381G2KeyPair = async (seed?: Uint8Array): Promise<Requ
  * @returns A BlindedBlsKeyPair
  */
 export const generateBlindedBls12381G2KeyPair = async (seed?: Uint8Array): Promise<Required<BlindedBlsKeyPair>> => {
-  const result = seed ? bbs.bls_generate_blinded_g2_key(seed?.buffer) : bbs.bls_generate_blinded_g2_key();
+  const result = wrapFFI(bbs.bls_generate_blinded_g2_key, seed ? { seed: arrayBufferToBase64(seed?.buffer) } : {});
   return {
-    publicKey: new Uint8Array(result.publicKey),
-    secretKey: new Uint8Array(result.secretKey),
-    blindingFactor: new Uint8Array(result.blindingFactor),
+    publicKey: base64ToUint8Array(result.public_key),
+    secretKey: base64ToUint8Array(result.secret_key),
+    blindingFactor: base64ToUint8Array(result.blinding_factor),
   };
 };
