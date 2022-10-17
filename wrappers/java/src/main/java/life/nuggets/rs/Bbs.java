@@ -23,14 +23,20 @@ public class Bbs {
   private static native String bls_secret_key_to_bbs_key(byte[] context);
   private static native String bls_public_key_to_bbs_key(byte[] context);
   private static native String bbs_sign(byte[] context);
+  private static native String bls_sign(byte[] context);
   private static native String bbs_create_proof(byte[] context);
+  private static native String bls_create_proof(byte[] context);
   private static native String bbs_verify_proof(byte[] context);
   private static native String bls_verify_proof(byte[] context);
   private static native String bbs_blind_signature_commitment(byte[] context);
+  private static native String bls_blind_signature_commitment(byte[] context);
   private static native String bbs_verify_blind_signature_proof(byte[] context);
+  private static native String bls_verify_blind_signature_proof(byte[] context);
   private static native String bbs_blind_sign(byte[] context);
+  private static native String bls_blind_sign(byte[] context);
   private static native String bbs_get_unblinded_signature(byte[] context);
   private static native String bbs_verify(byte[] context);
+  private static native String bls_verify(byte[] context);
 
   public static void main(String[] args) {
 

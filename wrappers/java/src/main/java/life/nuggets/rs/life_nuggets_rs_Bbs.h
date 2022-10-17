@@ -65,10 +65,26 @@ JNIEXPORT jstring JNICALL Java_life_nuggets_rs_Bbs_bbs_1sign
 
 /*
  * Class:     life_nuggets_rs_Bbs
+ * Method:    bls_sign
+ * Signature: ([B)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_life_nuggets_rs_Bbs_bls_1sign
+  (JNIEnv *, jclass, jbyteArray);
+
+/*
+ * Class:     life_nuggets_rs_Bbs
  * Method:    bbs_create_proof
  * Signature: ([B)Ljava/lang/String;
  */
 JNIEXPORT jstring JNICALL Java_life_nuggets_rs_Bbs_bbs_1create_1proof
+  (JNIEnv *, jclass, jbyteArray);
+
+/*
+ * Class:     life_nuggets_rs_Bbs
+ * Method:    bls_create_proof
+ * Signature: ([B)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_life_nuggets_rs_Bbs_bls_1create_1proof
   (JNIEnv *, jclass, jbyteArray);
 
 /*
@@ -97,6 +113,14 @@ JNIEXPORT jstring JNICALL Java_life_nuggets_rs_Bbs_bbs_1blind_1signature_1commit
 
 /*
  * Class:     life_nuggets_rs_Bbs
+ * Method:    bls_blind_signature_commitment
+ * Signature: ([B)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_life_nuggets_rs_Bbs_bls_1blind_1signature_1commitment
+  (JNIEnv *, jclass, jbyteArray);
+
+/*
+ * Class:     life_nuggets_rs_Bbs
  * Method:    bbs_verify_blind_signature_proof
  * Signature: ([B)Ljava/lang/String;
  */
@@ -105,10 +129,26 @@ JNIEXPORT jstring JNICALL Java_life_nuggets_rs_Bbs_bbs_1verify_1blind_1signature
 
 /*
  * Class:     life_nuggets_rs_Bbs
+ * Method:    bls_verify_blind_signature_proof
+ * Signature: ([B)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_life_nuggets_rs_Bbs_bls_1verify_1blind_1signature_1proof
+  (JNIEnv *, jclass, jbyteArray);
+
+/*
+ * Class:     life_nuggets_rs_Bbs
  * Method:    bbs_blind_sign
  * Signature: ([B)Ljava/lang/String;
  */
 JNIEXPORT jstring JNICALL Java_life_nuggets_rs_Bbs_bbs_1blind_1sign
+  (JNIEnv *, jclass, jbyteArray);
+
+/*
+ * Class:     life_nuggets_rs_Bbs
+ * Method:    bls_blind_sign
+ * Signature: ([B)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_life_nuggets_rs_Bbs_bls_1blind_1sign
   (JNIEnv *, jclass, jbyteArray);
 
 /*
@@ -125,6 +165,14 @@ JNIEXPORT jstring JNICALL Java_life_nuggets_rs_Bbs_bbs_1get_1unblinded_1signatur
  * Signature: ([B)Ljava/lang/String;
  */
 JNIEXPORT jstring JNICALL Java_life_nuggets_rs_Bbs_bbs_1verify
+  (JNIEnv *, jclass, jbyteArray);
+
+/*
+ * Class:     life_nuggets_rs_Bbs
+ * Method:    bls_verify
+ * Signature: ([B)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_life_nuggets_rs_Bbs_bls_1verify
   (JNIEnv *, jclass, jbyteArray);
 
 #ifdef __cplusplus
