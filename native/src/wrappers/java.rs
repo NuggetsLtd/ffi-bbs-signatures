@@ -15,13 +15,19 @@ use crate::rust_bbs::{
   rust_bls_secret_key_to_bbs_key,
   rust_bls_public_key_to_bbs_key,
   rust_bbs_sign,
+  rust_bls_sign,
   rust_bbs_verify,
+  rust_bls_verify,
   rust_bbs_create_proof,
+  rust_bls_create_proof,
   rust_bbs_verify_proof,
   rust_bls_verify_proof,
   rust_bbs_blind_signature_commitment,
+  rust_bls_blind_signature_commitment,
   rust_bbs_verify_blind_signature_proof,
+  rust_bls_verify_blind_signature_proof,
   rust_bbs_blind_sign,
+  rust_bls_blind_sign,
   rust_bbs_unblind_signature,
 };
 use serde_json::{Value, json};
@@ -358,6 +364,42 @@ pub extern "system" fn Java_life_nuggets_rs_Bbs_bbs_1sign(
 
 #[allow(non_snake_case)]
 #[no_mangle]
+pub extern "system" fn Java_life_nuggets_rs_Bbs_bls_1sign(
+  env: JNIEnv,
+  _class: JClass,
+  ctx: jbyteArray,
+) -> jstring {
+  let context_bytes;
+  match env.convert_byte_array(ctx) {
+    Err(_) => { handle_err!("Failed converting `ctx` to byte array", env); }
+    Ok(bc) => context_bytes = bc,
+  };
+
+  // convert JSON string to JSON
+  let context_json: Value = match String::from_utf8(context_bytes.to_vec()) {
+    Ok(context_string) => {
+      match serde_json::from_str(&context_string) {
+        Ok(context) => context,
+        Err(_) => { handle_err!("Failed parsing JSON context", env); }
+      }
+    },
+    Err(_) => { handle_err!("Context not set", env); }
+  };
+
+  match rust_bls_sign(context_json) {
+    Ok(output_string) => {
+      let output = env
+        .new_string(output_string)
+        .expect("Unable to create string from BBS signature data");
+
+      output.into_inner()
+    }
+    Err(error) => { handle_err!(format!("Failed to stringify BBS signature: {:?}", error), env); }
+  }
+}
+
+#[allow(non_snake_case)]
+#[no_mangle]
 pub extern "system" fn Java_life_nuggets_rs_Bbs_bbs_1create_1proof(
   env: JNIEnv,
   _class: JClass,
@@ -381,6 +423,42 @@ pub extern "system" fn Java_life_nuggets_rs_Bbs_bbs_1create_1proof(
   };
 
   match rust_bbs_create_proof(context_json) {
+    Ok(output_string) => {
+      let output = env
+        .new_string(output_string)
+        .expect("Unable to create string from BBS proof data");
+
+      output.into_inner()
+    }
+    Err(error) => { handle_err!(format!("Failed generating proof of knowledge: {:?}", error), env); }
+  }
+}
+
+#[allow(non_snake_case)]
+#[no_mangle]
+pub extern "system" fn Java_life_nuggets_rs_Bbs_bls_1create_1proof(
+  env: JNIEnv,
+  _class: JClass,
+  ctx: jbyteArray,
+) -> jstring {
+  let context_bytes;
+  match env.convert_byte_array(ctx) {
+    Err(_) => { handle_err!("Failed converting `ctx` to byte array", env); }
+    Ok(bc) => context_bytes = bc,
+  };
+
+  // convert JSON string to JSON
+  let context_json: Value = match String::from_utf8(context_bytes.to_vec()) {
+    Ok(context_string) => {
+      match serde_json::from_str(&context_string) {
+        Ok(context) => context,
+        Err(_) => { handle_err!("Failed parsing JSON context", env); }
+      }
+    },
+    Err(_) => { handle_err!("Context not set", env); }
+  };
+
+  match rust_bls_create_proof(context_json) {
     Ok(output_string) => {
       let output = env
         .new_string(output_string)
@@ -502,6 +580,42 @@ pub extern "system" fn Java_life_nuggets_rs_Bbs_bbs_1blind_1signature_1commitmen
 
 #[allow(non_snake_case)]
 #[no_mangle]
+pub extern "system" fn Java_life_nuggets_rs_Bbs_bls_1blind_1signature_1commitment(
+  env: JNIEnv,
+  _class: JClass,
+  ctx: jbyteArray,
+) -> jstring {
+  let context_bytes;
+  match env.convert_byte_array(ctx) {
+    Err(_) => { handle_err!("Failed converting `ctx` to byte array", env); }
+    Ok(bc) => context_bytes = bc,
+  };
+
+  // convert JSON string to JSON
+  let context_json: Value = match String::from_utf8(context_bytes.to_vec()) {
+    Ok(context_string) => {
+      match serde_json::from_str(&context_string) {
+        Ok(context) => context,
+        Err(_) => { handle_err!("Failed parsing JSON context", env); }
+      }
+    },
+    Err(_) => { handle_err!("Context not set", env); }
+  };
+
+  match rust_bls_blind_signature_commitment(context_json) {
+    Ok(output_string) => {
+      let output = env
+        .new_string(output_string)
+        .expect("Unable to create string from blind commitment data");
+
+      output.into_inner()
+    }
+    Err(error) => { handle_err!(format!("Failed generating blind commitment: {:?}", error), env); }
+  }
+}
+
+#[allow(non_snake_case)]
+#[no_mangle]
 pub extern "system" fn Java_life_nuggets_rs_Bbs_bbs_1verify_1blind_1signature_1proof(
   env: JNIEnv,
   _class: JClass,
@@ -538,6 +652,42 @@ pub extern "system" fn Java_life_nuggets_rs_Bbs_bbs_1verify_1blind_1signature_1p
 
 #[allow(non_snake_case)]
 #[no_mangle]
+pub extern "system" fn Java_life_nuggets_rs_Bbs_bls_1verify_1blind_1signature_1proof(
+  env: JNIEnv,
+  _class: JClass,
+  ctx: jbyteArray,
+) -> jstring {
+  let context_bytes;
+  match env.convert_byte_array(ctx) {
+    Err(_) => { handle_err!("Failed converting `ctx` to byte array", env); }
+    Ok(bc) => context_bytes = bc,
+  };
+
+  // convert JSON string to JSON
+  let context_json: Value = match String::from_utf8(context_bytes.to_vec()) {
+    Ok(context_string) => {
+      match serde_json::from_str(&context_string) {
+        Ok(context) => context,
+        Err(_) => { handle_err!("Failed parsing JSON context", env); }
+      }
+    },
+    Err(_) => { handle_err!("Context not set", env); }
+  };
+
+  match rust_bls_verify_blind_signature_proof(context_json) {
+    Ok(output_string) => {
+      let output = env
+        .new_string(output_string)
+        .expect("Unable to create string from blind commitment verification data");
+
+      output.into_inner()
+    }
+    Err(error) => { handle_err!(format!("Failed verifying blind commitment: {:?}", error), env); }
+  }
+}
+
+#[allow(non_snake_case)]
+#[no_mangle]
 pub extern "system" fn Java_life_nuggets_rs_Bbs_bbs_1blind_1sign(
   env: JNIEnv,
   _class: JClass,
@@ -561,6 +711,42 @@ pub extern "system" fn Java_life_nuggets_rs_Bbs_bbs_1blind_1sign(
   };
 
   match rust_bbs_blind_sign(context_json) {
+    Ok(output_string) => {
+      let output = env
+        .new_string(output_string)
+        .expect("Unable to create string from blind signature data");
+
+      output.into_inner()
+    }
+    Err(error) => { handle_err!(format!("Failed generating blind signature: {:?}", error), env); }
+  }
+}
+
+#[allow(non_snake_case)]
+#[no_mangle]
+pub extern "system" fn Java_life_nuggets_rs_Bbs_bls_1blind_1sign(
+  env: JNIEnv,
+  _class: JClass,
+  ctx: jbyteArray,
+) -> jstring {
+  let context_bytes;
+  match env.convert_byte_array(ctx) {
+    Err(_) => { handle_err!("Failed converting `ctx` to byte array", env); }
+    Ok(bc) => context_bytes = bc,
+  };
+
+  // convert JSON string to JSON
+  let context_json: Value = match String::from_utf8(context_bytes.to_vec()) {
+    Ok(context_string) => {
+      match serde_json::from_str(&context_string) {
+        Ok(context) => context,
+        Err(_) => { handle_err!("Failed parsing JSON context", env); }
+      }
+    },
+    Err(_) => { handle_err!("Context not set", env); }
+  };
+
+  match rust_bls_blind_sign(context_json) {
     Ok(output_string) => {
       let output = env
         .new_string(output_string)
@@ -633,6 +819,42 @@ pub extern "system" fn Java_life_nuggets_rs_Bbs_bbs_1verify(
   };
 
   match rust_bbs_verify(context_json) {
+    Ok(output_string) => {
+      let output = env
+        .new_string(output_string)
+        .expect("Unable to create string from signature verification outcome");
+
+      output.into_inner()
+    }
+    Err(error) => { handle_err!(format!("Failed verifying messages: {:?}", error), env); }
+  }
+}
+
+#[allow(non_snake_case)]
+#[no_mangle]
+pub extern "system" fn Java_life_nuggets_rs_Bbs_bls_1verify(
+  env: JNIEnv,
+  _class: JClass,
+  ctx: jbyteArray,
+) -> jstring {
+  let context_bytes;
+  match env.convert_byte_array(ctx) {
+    Err(_) => { handle_err!("Failed converting `ctx` to byte array", env); }
+    Ok(bc) => context_bytes = bc,
+  };
+
+  // convert JSON string to JSON
+  let context_json: Value = match String::from_utf8(context_bytes.to_vec()) {
+    Ok(context_string) => {
+      match serde_json::from_str(&context_string) {
+        Ok(context) => context,
+        Err(_) => { handle_err!("Failed parsing JSON context", env); }
+      }
+    },
+    Err(_) => { handle_err!("Context not set", env); }
+  };
+
+  match rust_bls_verify(context_json) {
     Ok(output_string) => {
       let output = env
         .new_string(output_string)
