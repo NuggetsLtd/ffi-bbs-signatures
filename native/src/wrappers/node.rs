@@ -16,13 +16,19 @@ use crate::rust_bbs::{
   rust_bls_secret_key_to_bbs_key,
   rust_bls_public_key_to_bbs_key,
   rust_bbs_sign,
+  rust_bls_sign,
   rust_bbs_verify,
+  rust_bls_verify,
   rust_bbs_create_proof,
+  rust_bls_create_proof,
   rust_bbs_verify_proof,
   rust_bls_verify_proof,
   rust_bbs_blind_signature_commitment,
+  rust_bls_blind_signature_commitment,
   rust_bbs_verify_blind_signature_proof,
+  rust_bls_verify_blind_signature_proof,
   rust_bbs_blind_sign,
+  rust_bls_blind_sign,
   rust_bbs_unblind_signature,
 };
 use serde_json::{json};
@@ -210,20 +216,28 @@ fn node_bbs_sign(mut cx: FunctionContext) -> JsResult<JsString> {
   }
 }
 
+/// BBS Sign
+fn node_bls_sign(mut cx: FunctionContext) -> JsResult<JsString> {
+  let context = arg_to_slice!(cx, 0);
+
+  // convert JSON string to JSON
+  let context_json: serde_json::Value = match String::from_utf8(context.to_vec()) {
+    Ok(context_string) => {
+      match serde_json::from_str(&context_string) {
+        Ok(context_json) => context_json,
+        Err(_) => { handle_err!("Failed parsing JSON for context", cx); }
+      }
+    },
+    Err(_) => { handle_err!("Context not set", cx); }
+  };
+
+  match rust_bls_sign(context_json) {
+    Ok(output_string) => Ok(cx.string(output_string)),
+    Err(_) => { handle_err!("Unable to sign messages", cx); }
+  }
+}
+
 /// Verify a BBS+ signature
-/// The first argument is the domain separation label
-/// The second argument is the public key `w` created from bls_generate_key
-/// The third argument is the signature to be verified.
-/// The remaining values are the messages that were signed
-///
-/// `signature_context`: `Object` the context for verifying the signature
-/// {
-///     "publicKey": ArrayBuffer                // The public key
-///     "signature": ArrayBuffer                // The signature
-///     "messages": [ArrayBuffer, ArrayBuffer], // The messages that were signed as strings. They will be Blake2b hashed
-/// }
-///
-/// `return`: true if valid `signature` on `messages`
 fn node_bbs_verify(mut cx: FunctionContext) -> JsResult<JsString> {
   let context = arg_to_slice!(cx, 0);
 
@@ -239,6 +253,27 @@ fn node_bbs_verify(mut cx: FunctionContext) -> JsResult<JsString> {
   };
 
   match rust_bbs_verify(context_json) {
+    Ok(output_string) => Ok(cx.string(output_string)),
+    Err(error) => { handle_err!(format!("Unable to verify signed messages: {:?}", error), cx); }
+  }
+}
+
+/// Verify a BBS+ signature
+fn node_bls_verify(mut cx: FunctionContext) -> JsResult<JsString> {
+  let context = arg_to_slice!(cx, 0);
+
+  // convert JSON string to JSON
+  let context_json: serde_json::Value = match String::from_utf8(context.to_vec()) {
+    Ok(context_string) => {
+      match serde_json::from_str(&context_string) {
+        Ok(context_json) => context_json,
+        Err(_) => { handle_err!("Failed parsing JSON for context", cx); }
+      }
+    },
+    Err(_) => { handle_err!("Context not set", cx); }
+  };
+
+  match rust_bls_verify(context_json) {
     Ok(output_string) => Ok(cx.string(output_string)),
     Err(error) => { handle_err!(format!("Unable to verify signed messages: {:?}", error), cx); }
   }
@@ -260,6 +295,27 @@ fn node_bbs_create_proof(mut cx: FunctionContext) -> JsResult<JsString> {
   };
 
   match rust_bbs_create_proof(context_json) {
+    Ok(output_string) => Ok(cx.string(output_string)),
+    Err(_) => { handle_err!("Unable to generate proof", cx); }
+  }
+}
+
+/// BLS Create Proof
+fn node_bls_create_proof(mut cx: FunctionContext) -> JsResult<JsString> {
+  let context = arg_to_slice!(cx, 0);
+
+  // convert JSON string to JSON
+  let context_json: serde_json::Value = match String::from_utf8(context.to_vec()) {
+    Ok(context_string) => {
+      match serde_json::from_str(&context_string) {
+        Ok(context_json) => context_json,
+        Err(_) => { handle_err!("Failed parsing JSON for context", cx); }
+      }
+    },
+    Err(_) => { handle_err!("Context not set", cx); }
+  };
+
+  match rust_bls_create_proof(context_json) {
     Ok(output_string) => Ok(cx.string(output_string)),
     Err(_) => { handle_err!("Unable to generate proof", cx); }
   }
@@ -328,6 +384,27 @@ fn node_bbs_blind_signature_commitment(mut cx: FunctionContext) -> JsResult<JsSt
   }
 }
 
+/// Generate Blind Signature Commitment JSON
+fn node_bls_blind_signature_commitment(mut cx: FunctionContext) -> JsResult<JsString> {
+  let context = arg_to_slice!(cx, 0);
+
+  // convert JSON string to JSON
+  let context_json: serde_json::Value = match String::from_utf8(context.to_vec()) {
+    Ok(context_string) => {
+      match serde_json::from_str(&context_string) {
+        Ok(context_json) => context_json,
+        Err(_) => { handle_err!("Failed parsing JSON for context", cx); }
+      }
+    },
+    Err(_) => { handle_err!("Context not set", cx); }
+  };
+
+  match rust_bls_blind_signature_commitment(context_json) {
+    Ok(output_string) => Ok(cx.string(output_string)),
+    Err(_) => { handle_err!("Unable to generate blind signing commitment", cx); }
+  }
+}
+
 /// Verify Blind Signature Commitment JSON
 fn node_bbs_verify_blind_signature_proof(mut cx: FunctionContext) -> JsResult<JsString> {
   let context = arg_to_slice!(cx, 0);
@@ -349,6 +426,27 @@ fn node_bbs_verify_blind_signature_proof(mut cx: FunctionContext) -> JsResult<Js
   }
 }
 
+/// Verify Blind Signature Commitment JSON
+fn node_bls_verify_blind_signature_proof(mut cx: FunctionContext) -> JsResult<JsString> {
+  let context = arg_to_slice!(cx, 0);
+
+  // convert JSON string to JSON
+  let context_json: serde_json::Value = match String::from_utf8(context.to_vec()) {
+    Ok(context_string) => {
+      match serde_json::from_str(&context_string) {
+        Ok(context_json) => context_json,
+        Err(_) => { handle_err!("Failed parsing JSON for context", cx); }
+      }
+    },
+    Err(_) => { handle_err!("Context not set", cx); }
+  };
+
+  match rust_bls_verify_blind_signature_proof(context_json) {
+    Ok(output_string) => Ok(cx.string(output_string)),
+    Err(_) => { handle_err!("Unable to verify blind signing commitment", cx); }
+  }
+}
+
 /// Blind Sign Messages
 fn node_bbs_blind_sign(mut cx: FunctionContext) -> JsResult<JsString> {
   let context = arg_to_slice!(cx, 0);
@@ -365,6 +463,27 @@ fn node_bbs_blind_sign(mut cx: FunctionContext) -> JsResult<JsString> {
   };
 
   match rust_bbs_blind_sign(context_json) {
+    Ok(output_string) => Ok(cx.string(output_string)),
+    Err(_) => { handle_err!("Unable to blind sign messages", cx); }
+  }
+}
+
+/// Blind Sign Messages
+fn node_bls_blind_sign(mut cx: FunctionContext) -> JsResult<JsString> {
+  let context = arg_to_slice!(cx, 0);
+
+  // convert JSON string to JSON
+  let context_json: serde_json::Value = match String::from_utf8(context.to_vec()) {
+    Ok(context_string) => {
+      match serde_json::from_str(&context_string) {
+        Ok(context_json) => context_json,
+        Err(_) => { handle_err!("Failed parsing JSON for context", cx); }
+      }
+    },
+    Err(_) => { handle_err!("Context not set", cx); }
+  };
+
+  match rust_bls_blind_sign(context_json) {
     Ok(output_string) => Ok(cx.string(output_string)),
     Err(_) => { handle_err!("Unable to blind sign messages", cx); }
   }
@@ -405,8 +524,11 @@ register_module!(mut cx, {
   cx.export_function("bls_secret_key_to_bbs_key", node_bls_secret_key_to_bbs_key)?;
   cx.export_function("bls_public_key_to_bbs_key", node_bls_public_key_to_bbs_key)?;
   cx.export_function("bbs_sign", node_bbs_sign)?;
+  cx.export_function("bls_sign", node_bls_sign)?;
   cx.export_function("bbs_verify", node_bbs_verify)?;
+  cx.export_function("bls_verify", node_bls_verify)?;
   cx.export_function("bbs_create_proof", node_bbs_create_proof)?;
+  cx.export_function("bls_create_proof", node_bls_create_proof)?;
   cx.export_function("bbs_verify_proof", node_bbs_verify_proof)?;
   cx.export_function("bls_verify_proof", node_bls_verify_proof)?;
   cx.export_function(
@@ -414,10 +536,19 @@ register_module!(mut cx, {
       node_bbs_blind_signature_commitment,
   )?;
   cx.export_function(
+      "bls_blind_signature_commitment",
+      node_bls_blind_signature_commitment,
+  )?;
+  cx.export_function(
       "bbs_verify_blind_signature_proof",
       node_bbs_verify_blind_signature_proof,
   )?;
+  cx.export_function(
+      "bls_verify_blind_signature_proof",
+      node_bls_verify_blind_signature_proof,
+  )?;
   cx.export_function("bbs_blind_sign", node_bbs_blind_sign)?;
+  cx.export_function("bls_blind_sign", node_bls_blind_sign)?;
   cx.export_function("bbs_get_unblinded_signature", node_bbs_get_unblinded_signature)?;
   Ok(())
 });
