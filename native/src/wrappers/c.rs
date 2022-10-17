@@ -17,13 +17,19 @@ use crate::rust_bbs::{
   rust_bls_secret_key_to_bbs_key,
   rust_bls_public_key_to_bbs_key,
   rust_bbs_sign,
+  rust_bls_sign,
   rust_bbs_verify,
+  rust_bls_verify,
   rust_bbs_create_proof,
+  rust_bls_create_proof,
   rust_bbs_verify_proof,
   rust_bls_verify_proof,
   rust_bbs_blind_signature_commitment,
+  rust_bls_blind_signature_commitment,
   rust_bbs_verify_blind_signature_proof,
+  rust_bls_verify_blind_signature_proof,
   rust_bbs_blind_sign,
+  rust_bls_blind_sign,
   rust_bbs_unblind_signature,
 };
 use std::os::raw::c_char;
@@ -227,7 +233,7 @@ pub unsafe extern "C" fn bls_generate_g2_key(
       // box the string, so string isn't de-allocated on leaving the scope of this fn
       let boxed: Box<str> = g2_key_string.into_boxed_str();
     
-      // set json_string pointer to boxed g1_key_string
+      // set json_string pointer to boxed g2_key_string
       json_string.ptr = Box::into_raw(boxed).cast();
 
       0
@@ -259,14 +265,14 @@ pub unsafe extern "C" fn bls_secret_key_to_bbs_key(
 
   // Serialize response to a JSON string
   match rust_bls_secret_key_to_bbs_key(context_json) {
-    Ok(mut g2_key_string) => {
+    Ok(mut output_string) => {
       // add null terminator (for C-string)
-      g2_key_string.push('\0');
+      output_string.push('\0');
 
       // box the string, so string isn't de-allocated on leaving the scope of this fn
-      let boxed: Box<str> = g2_key_string.into_boxed_str();
+      let boxed: Box<str> = output_string.into_boxed_str();
     
-      // set json_string pointer to boxed g1_key_string
+      // set json_string pointer to boxed output_string
       json_string.ptr = Box::into_raw(boxed).cast();
 
       0
@@ -298,14 +304,14 @@ pub unsafe extern "C" fn bls_public_key_to_bbs_key(
 
   // Serialize response to a JSON string
   match rust_bls_public_key_to_bbs_key(context_json) {
-    Ok(mut g2_key_string) => {
+    Ok(mut output_string) => {
       // add null terminator (for C-string)
-      g2_key_string.push('\0');
+      output_string.push('\0');
 
       // box the string, so string isn't de-allocated on leaving the scope of this fn
-      let boxed: Box<str> = g2_key_string.into_boxed_str();
+      let boxed: Box<str> = output_string.into_boxed_str();
     
-      // set json_string pointer to boxed g1_key_string
+      // set json_string pointer to boxed output_string
       json_string.ptr = Box::into_raw(boxed).cast();
 
       0
@@ -337,14 +343,53 @@ pub unsafe extern "C" fn bbs_sign(
 
   // Serialize response to a JSON string
   match rust_bbs_sign(context_json) {
-    Ok(mut g2_key_string) => {
+    Ok(mut output_string) => {
       // add null terminator (for C-string)
-      g2_key_string.push('\0');
+      output_string.push('\0');
 
       // box the string, so string isn't de-allocated on leaving the scope of this fn
-      let boxed: Box<str> = g2_key_string.into_boxed_str();
+      let boxed: Box<str> = output_string.into_boxed_str();
     
-      // set json_string pointer to boxed g1_key_string
+      // set json_string pointer to boxed output_string
+      json_string.ptr = Box::into_raw(boxed).cast();
+
+      0
+    },
+    Err(error) => { handle_err!(format!("Failed to stringify BBS Signature: {:?}", error), json_string); }
+  }
+}
+
+/// BLS Sign
+///
+/// # SAFETY
+/// The `json_string.ptr` pointer needs to follow the same safety requirements
+/// as Rust's `std::ffi::CStr::from_ptr`
+#[no_mangle]
+pub unsafe extern "C" fn bls_sign(
+  context: ffi::ByteArray,
+  json_string: &mut JsonString,
+) -> i32 {
+  // convert JSON string to JSON
+  let context_json: Value = match String::from_utf8(context.to_vec()) {
+    Ok(context_string) => {
+      match serde_json::from_str(&context_string) {
+        Ok(context_json) => context_json,
+        Err(_) => { handle_err!("Failed parsing JSON for context", json_string); }
+      }
+    },
+    Err(_) => { handle_err!("Context not set", json_string); }
+  };
+
+  // Serialize response to a JSON string
+  match rust_bls_sign(context_json) {
+    Ok(mut output_string) => {
+      // add null terminator (for C-string)
+      output_string.push('\0');
+
+      // box the string, so string isn't de-allocated on leaving the scope of this fn
+      let boxed: Box<str> = output_string.into_boxed_str();
+    
+      // set json_string pointer to boxed output_string
       json_string.ptr = Box::into_raw(boxed).cast();
 
       0
@@ -376,6 +421,45 @@ pub unsafe extern "C" fn bbs_create_proof(
 
   // Serialize response to a JSON string
   match rust_bbs_create_proof(context_json) {
+    Ok(mut g2_key_string) => {
+      // add null terminator (for C-string)
+      g2_key_string.push('\0');
+
+      // box the string, so string isn't de-allocated on leaving the scope of this fn
+      let boxed: Box<str> = g2_key_string.into_boxed_str();
+    
+      // set json_string pointer to boxed g1_key_string
+      json_string.ptr = Box::into_raw(boxed).cast();
+
+      0
+    },
+    Err(error) => { handle_err!(format!("Failed generating proof of knowledge: {:?}", error), json_string); }
+  }
+}
+
+/// BLS Create Proof
+///
+/// # SAFETY
+/// The `json_string.ptr` pointer needs to follow the same safety requirements
+/// as Rust's `std::ffi::CStr::from_ptr`
+#[no_mangle]
+pub unsafe extern "C" fn bls_create_proof(
+  context: ffi::ByteArray,
+  json_string: &mut JsonString,
+) -> i32 {
+  // convert JSON string to JSON
+  let context_json: Value = match String::from_utf8(context.to_vec()) {
+    Ok(context_string) => {
+      match serde_json::from_str(&context_string) {
+        Ok(context_json) => context_json,
+        Err(_) => { handle_err!("Failed parsing JSON for context", json_string); }
+      }
+    },
+    Err(_) => { handle_err!("Context not set", json_string); }
+  };
+
+  // Serialize response to a JSON string
+  match rust_bls_create_proof(context_json) {
     Ok(mut g2_key_string) => {
       // add null terminator (for C-string)
       g2_key_string.push('\0');
@@ -509,6 +593,45 @@ pub unsafe extern "C" fn bbs_blind_signature_commitment(
   }
 }
 
+/// Generate Blind Signature Commitment JSON
+///
+/// # SAFETY
+/// The `json_string.ptr` pointer needs to follow the same safety requirements
+/// as Rust's `std::ffi::CStr::from_ptr`
+#[no_mangle]
+pub unsafe extern "C" fn bls_blind_signature_commitment(
+  context: ffi::ByteArray,
+  json_string: &mut JsonString,
+) -> i32 {
+  // convert JSON string to JSON
+  let context_json: Value = match String::from_utf8(context.to_vec()) {
+    Ok(context_string) => {
+      match serde_json::from_str(&context_string) {
+        Ok(context_json) => context_json,
+        Err(_) => { handle_err!("Failed parsing JSON for context", json_string); }
+      }
+    },
+    Err(_) => { handle_err!("Context not set", json_string); }
+  };
+
+  // Serialize response to a JSON string
+  match rust_bls_blind_signature_commitment(context_json) {
+    Ok(mut output_string) => {
+      // add null terminator (for C-string)
+      output_string.push('\0');
+
+      // box the string, so string isn't de-allocated on leaving the scope of this fn
+      let boxed: Box<str> = output_string.into_boxed_str();
+    
+      // set json_string pointer to boxed output_string
+      json_string.ptr = Box::into_raw(boxed).cast();
+
+      0
+    },
+    Err(error) => { handle_err!(format!("Failed to generate blind signature commitment: {:?}", error), json_string); }
+  }
+}
+
 /// Verify Blind Signature Commitment Context
 ///
 /// # SAFETY
@@ -548,6 +671,45 @@ pub unsafe extern "C" fn bbs_verify_blind_signature_proof(
   }
 }
 
+/// Verify Blind Signature Commitment Context
+///
+/// # SAFETY
+/// The `json_string.ptr` pointer needs to follow the same safety requirements
+/// as Rust's `std::ffi::CStr::from_ptr`
+#[no_mangle]
+pub unsafe extern "C" fn bls_verify_blind_signature_proof(
+  context: ffi::ByteArray,
+  json_string: &mut JsonString,
+) -> i32 {
+  // convert JSON string to JSON
+  let context_json: Value = match String::from_utf8(context.to_vec()) {
+    Ok(context_string) => {
+      match serde_json::from_str(&context_string) {
+        Ok(context_json) => context_json,
+        Err(_) => { handle_err!("Failed parsing JSON for context", json_string); }
+      }
+    },
+    Err(_) => { handle_err!("Context not set", json_string); }
+  };
+
+  // Serialize response to a JSON string
+  match rust_bls_verify_blind_signature_proof(context_json) {
+    Ok(mut output_string) => {
+      // add null terminator (for C-string)
+      output_string.push('\0');
+
+      // box the string, so string isn't de-allocated on leaving the scope of this fn
+      let boxed: Box<str> = output_string.into_boxed_str();
+    
+      // set json_string pointer to boxed output_string
+      json_string.ptr = Box::into_raw(boxed).cast();
+
+      0
+    },
+    Err(error) => { handle_err!(format!("Failed to verify blind signature commitment: {:?}", error), json_string); }
+  }
+}
+
 /// Blind Sign Messages
 ///
 /// # SAFETY
@@ -571,6 +733,45 @@ pub unsafe extern "C" fn bbs_blind_sign(
 
   // Serialize response to a JSON string
   match rust_bbs_blind_sign(context_json) {
+    Ok(mut output_string) => {
+      // add null terminator (for C-string)
+      output_string.push('\0');
+
+      // box the string, so string isn't de-allocated on leaving the scope of this fn
+      let boxed: Box<str> = output_string.into_boxed_str();
+    
+      // set json_string pointer to boxed output_string
+      json_string.ptr = Box::into_raw(boxed).cast();
+
+      0
+    },
+    Err(error) => { handle_err!(format!("Failed to generate blind signature: {:?}", error), json_string); }
+  }
+}
+
+/// Blind Sign Messages
+///
+/// # SAFETY
+/// The `json_string.ptr` pointer needs to follow the same safety requirements
+/// as Rust's `std::ffi::CStr::from_ptr`
+#[no_mangle]
+pub unsafe extern "C" fn bls_blind_sign(
+  context: ffi::ByteArray,
+  json_string: &mut JsonString,
+) -> i32 {
+  // convert JSON string to JSON
+  let context_json: Value = match String::from_utf8(context.to_vec()) {
+    Ok(context_string) => {
+      match serde_json::from_str(&context_string) {
+        Ok(context_json) => context_json,
+        Err(_) => { handle_err!("Failed parsing JSON for context", json_string); }
+      }
+    },
+    Err(_) => { handle_err!("Context not set", json_string); }
+  };
+
+  // Serialize response to a JSON string
+  match rust_bls_blind_sign(context_json) {
     Ok(mut output_string) => {
       // add null terminator (for C-string)
       output_string.push('\0');
@@ -649,6 +850,45 @@ pub unsafe extern "C" fn bbs_verify(
 
   // Serialize response to a JSON string
   match rust_bbs_verify(context_json) {
+    Ok(mut output_string) => {
+      // add null terminator (for C-string)
+      output_string.push('\0');
+
+      // box the string, so string isn't de-allocated on leaving the scope of this fn
+      let boxed: Box<str> = output_string.into_boxed_str();
+    
+      // set json_string pointer to boxed output_string
+      json_string.ptr = Box::into_raw(boxed).cast();
+
+      0
+    },
+    Err(error) => { handle_err!(format!("Failed to verify signature: {:?}", error), json_string); }
+  }
+}
+
+/// Verify signature
+///
+/// # SAFETY
+/// The `json_string.ptr` pointer needs to follow the same safety requirements
+/// as Rust's `std::ffi::CStr::from_ptr`
+#[no_mangle]
+pub unsafe extern "C" fn bls_verify(
+  context: ffi::ByteArray,
+  json_string: &mut JsonString,
+) -> i32 {
+  // convert JSON string to JSON
+  let context_json: Value = match String::from_utf8(context.to_vec()) {
+    Ok(context_string) => {
+      match serde_json::from_str(&context_string) {
+        Ok(context_json) => context_json,
+        Err(_) => { handle_err!("Failed parsing JSON for context", json_string); }
+      }
+    },
+    Err(_) => { handle_err!("Context not set", json_string); }
+  };
+
+  // Serialize response to a JSON string
+  match rust_bls_verify(context_json) {
     Ok(mut output_string) => {
       // add null terminator (for C-string)
       output_string.push('\0');
