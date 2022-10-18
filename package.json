@@ -1,6 +1,6 @@
 {
   "name": "@nuggetslife/ffi-bbs-signatures",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "Foreign Function Interface (FFI) for BBS+ Signatures package",
   "homepage": "https://github.com/NuggetsLtd/ffi-bbs-signatures",
   "main": "lib/index.js",
@@ -59,7 +59,7 @@
     "publish:binary": "./scripts/publish_binary.sh",
     "publish:ts": "./scripts/publish_ts.sh",
     "version": "conventional-changelog -p angular -i CHANGELOG.md -s && git add CHANGELOG.md",
-    "version:release": "yarn version --minor --message \"chore(release): publish\"",
+    "version:release": "yarn version --patch --message \"chore(release): publish\"",
     "docs": "typedoc --out docs/api src",
     "docs:rust": "cd native && cargo doc --no-deps --open",
     "prepare": "husky install",
