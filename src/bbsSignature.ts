@@ -357,7 +357,7 @@ export const verifyBlindSignContext = async (request: BbsVerifyBlindSignContextR
 export const blsVerifyBlindSignContext = async (request: BlsVerifyBlindSignContextRequest): Promise<boolean> => {
   const { commitment, proofOfHiddenMessages, challengeHash, publicKey, blinded, nonce, knownMessageCount } = request;
 
-  const { verified, error } = wrapFFI(bbs.bbs_verify_blind_signature_proof, {
+  const { verified, error } = wrapFFI(bbs.bls_verify_blind_signature_proof, {
     commitment: arrayBufferToBase64(commitment.buffer),
     proof_of_hidden_messages: arrayBufferToBase64(proofOfHiddenMessages.buffer),
     challenge_hash: arrayBufferToBase64(challengeHash.buffer),
