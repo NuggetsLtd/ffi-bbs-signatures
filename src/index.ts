@@ -29,8 +29,11 @@ export {
   verifyProof,
   blsVerifyProof,
   commitmentForBlindSignRequest,
+  blsCommitmentForBlindSignRequest,
   verifyBlindSignContext,
+  blsVerifyBlindSignContext,
   blindSign,
+  blsBlindSign,
   unblindSignature,
 } from "./bbsSignature";
 export * from "./types";
