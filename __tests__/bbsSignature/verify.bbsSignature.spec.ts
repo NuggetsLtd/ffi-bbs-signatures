@@ -21,7 +21,7 @@ import {
   generateBls12381G2KeyPair,
   BlsBbsSignRequest,
   blsSign,
-  BlsBbsVerifyRequest,
+  BlsVerifyRequest,
   BlsKeyPair,
 } from "../../src";
 import { base64Decode, stringToBytes } from "../utilities";
@@ -128,7 +128,7 @@ describe("bbsSignature", () => {
         messages: [stringToBytes("ExampleMessage")],
       };
       const signature = await blsSign(request);
-      const verifyRequest: BlsBbsVerifyRequest = {
+      const verifyRequest: BlsVerifyRequest = {
         publicKey: blsKeyPair.publicKey,
         messages: [stringToBytes("ExampleMessage")],
         signature,
@@ -143,7 +143,7 @@ describe("bbsSignature", () => {
         messages: [stringToBytes("ExampleMessage"), stringToBytes("ExampleMessage2"), stringToBytes("ExampleMessage3")],
       };
       const signature = await blsSign(request);
-      const verifyRequest: BlsBbsVerifyRequest = {
+      const verifyRequest: BlsVerifyRequest = {
         publicKey: blsKeyPair.publicKey,
         messages: [stringToBytes("ExampleMessage"), stringToBytes("ExampleMessage2"), stringToBytes("ExampleMessage3")],
         signature,
@@ -154,7 +154,7 @@ describe("bbsSignature", () => {
 
     it("should not verify valid signature with wrong single message", async () => {
       const messages = [stringToBytes("BadMessage")];
-      const verifyRequest: BlsBbsVerifyRequest = {
+      const verifyRequest: BlsVerifyRequest = {
         publicKey: blsKeyPair.publicKey,
         messages,
         signature: base64Decode(
@@ -167,7 +167,7 @@ describe("bbsSignature", () => {
 
     it("should not verify valid signature with wrong messages", async () => {
       const messages = [stringToBytes("BadMessage"), stringToBytes("BadMessage"), stringToBytes("BadMessage")];
-      const verifyRequest: BlsBbsVerifyRequest = {
+      const verifyRequest: BlsVerifyRequest = {
         publicKey: blsKeyPair.publicKey,
         messages,
         signature: base64Decode(
@@ -179,7 +179,7 @@ describe("bbsSignature", () => {
     });
 
     it("should not verify when messages empty", async () => {
-      const request: BlsBbsVerifyRequest = {
+      const request: BlsVerifyRequest = {
         publicKey: blsKeyPair.publicKey,
         messages: [],
         signature: base64Decode(
@@ -191,7 +191,7 @@ describe("bbsSignature", () => {
     });
 
     it("should not verify when public key invalid length", async () => {
-      const request: BlsBbsVerifyRequest = {
+      const request: BlsVerifyRequest = {
         publicKey: new Uint8Array(20),
         messages: [],
         signature: base64Decode(
