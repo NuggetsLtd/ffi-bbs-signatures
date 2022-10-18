@@ -33,13 +33,19 @@ describe('NEON NodeJS Interface:', () => {
       'bls_secret_key_to_bbs_key',
       'bls_public_key_to_bbs_key',
       'bbs_sign',
+      'bls_sign',
       'bbs_verify',
+      'bls_verify',
       'bbs_create_proof',
+      'bls_create_proof',
       'bbs_verify_proof',
       'bls_verify_proof',
       'bbs_blind_signature_commitment',
+      'bls_blind_signature_commitment',
       'bbs_verify_blind_signature_proof',
+      'bls_verify_blind_signature_proof',
       'bbs_blind_sign',
+      'bls_blind_sign',
       'bbs_get_unblinded_signature'
     ])
   })
@@ -58,13 +64,19 @@ describe('NEON NodeJS Interface:', () => {
     expect(typeof bbs.bls_secret_key_to_bbs_key).toBe('function')
     expect(typeof bbs.bls_public_key_to_bbs_key).toBe('function')
     expect(typeof bbs.bbs_sign).toBe('function')
+    expect(typeof bbs.bls_sign).toBe('function')
     expect(typeof bbs.bbs_verify).toBe('function')
+    expect(typeof bbs.bls_verify).toBe('function')
     expect(typeof bbs.bbs_create_proof).toBe('function')
+    expect(typeof bbs.bls_create_proof).toBe('function')
     expect(typeof bbs.bbs_verify_proof).toBe('function')
     expect(typeof bbs.bls_verify_proof).toBe('function')
     expect(typeof bbs.bbs_blind_signature_commitment).toBe('function')
+    expect(typeof bbs.bls_blind_signature_commitment).toBe('function')
     expect(typeof bbs.bbs_verify_blind_signature_proof).toBe('function')
+    expect(typeof bbs.bls_verify_blind_signature_proof).toBe('function')
     expect(typeof bbs.bbs_blind_sign).toBe('function')
+    expect(typeof bbs.bls_blind_sign).toBe('function')
     expect(typeof bbs.bbs_get_unblinded_signature).toBe('function')
   })
 
