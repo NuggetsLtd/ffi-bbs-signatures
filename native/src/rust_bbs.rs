@@ -431,6 +431,49 @@ pub fn rust_bbs_sign(
 }
 
 #[allow(dead_code)]
+pub fn rust_bls_sign(
+  mut context_json: Value
+) -> Result<String, BBSError> {
+  // get `messages` values as array
+  let messages_array = match context_json["messages"].as_array() {
+    Some(messages) => messages,
+    None => { handle_err!("Property not set: 'messages'"); }
+  };
+
+  let message_count = messages_array.len() as i64;
+  
+  // convert 'public_key' base64 string to `DeterministicPublicKey` instance
+  let dpk;
+  match context_json["public_key"].as_str() {
+    Some(public_key_b64) => {
+      let public_key_bytes = base64::decode(public_key_b64).unwrap().to_vec();
+      dpk = DeterministicPublicKey::from(*array_ref![
+        public_key_bytes,
+        0,
+        DETERMINISTIC_PUBLIC_KEY_COMPRESSED_SIZE
+      ]);
+    },
+    None => { handle_err!("Property not set: 'public_key'"); }
+  }
+
+  // convert deterministic public key to compressed BBS public key
+  let pk;
+  match dpk.to_public_key(message_count as usize) {
+    Ok(p) => pk = p,
+    Err(_) => { handle_err!("Failed to convert to BBS public key"); },
+  }
+  if pk.validate().is_err() {
+    handle_err!("Failed to validate public key");
+  }
+
+  let pk_bytes = pk.to_bytes_compressed_form();
+  
+  context_json["public_key"] = Value::String(base64::encode(pk_bytes.as_slice()));
+  
+  rust_bbs_sign(context_json)
+}
+
+#[allow(dead_code)]
 pub fn rust_bbs_create_proof(
   context_json: Value
 ) -> Result<String, BBSError> {
@@ -559,6 +602,49 @@ pub fn rust_bbs_create_proof(
     Ok(json_string) => Ok(json_string),
     Err(_) => { handle_err!("Failed to stringify BBS Proof"); },
   }
+}
+
+#[allow(dead_code)]
+pub fn rust_bls_create_proof(
+  mut context_json: Value
+) -> Result<String, BBSError> {
+  // get `messages` values as array
+  let messages_array = match context_json["messages"].as_array() {
+    Some(messages) => messages,
+    None => { handle_err!("Property not set: 'messages'"); }
+  };
+
+  let message_count = messages_array.len() as i64;
+  
+  // convert 'public_key' base64 string to `DeterministicPublicKey` instance
+  let dpk;
+  match context_json["public_key"].as_str() {
+    Some(public_key_b64) => {
+      let public_key_bytes = base64::decode(public_key_b64).unwrap().to_vec();
+      dpk = DeterministicPublicKey::from(*array_ref![
+        public_key_bytes,
+        0,
+        DETERMINISTIC_PUBLIC_KEY_COMPRESSED_SIZE
+      ]);
+    },
+    None => { handle_err!("Property not set: 'public_key'"); }
+  }
+
+  // convert deterministic public key to compressed BBS public key
+  let pk;
+  match dpk.to_public_key(message_count as usize) {
+    Ok(p) => pk = p,
+    Err(_) => { handle_err!("Failed to convert to BBS public key"); },
+  }
+  if pk.validate().is_err() {
+    handle_err!("Failed to validate public key");
+  }
+
+  let pk_bytes = pk.to_bytes_compressed_form();
+  
+  context_json["public_key"] = Value::String(base64::encode(pk_bytes.as_slice()));
+
+  rust_bbs_create_proof(context_json)
 }
 
 #[allow(dead_code)]
@@ -777,6 +863,55 @@ pub fn rust_bbs_blind_signature_commitment(
 }
 
 #[allow(dead_code)]
+pub fn rust_bls_blind_signature_commitment(
+  mut context_json: Value
+) -> Result<String, BBSError> {
+  // get `known_message_count` value as integer
+  let known_message_count = match context_json["known_message_count"].as_i64() {
+    Some(known_message_count) => known_message_count,
+    None => { handle_err!("Property not set: 'known_message_count'"); }
+  };
+
+  // get `messages` values as array
+  let messages_array = match context_json["messages"].as_array() {
+    Some(messages) => messages,
+    None => { handle_err!("Property not set: 'messages'"); }
+  };
+
+  let message_count = messages_array.len() as i64 + known_message_count;
+  
+  // convert 'public_key' base64 string to `DeterministicPublicKey` instance
+  let dpk;
+  match context_json["public_key"].as_str() {
+    Some(public_key_b64) => {
+      let public_key_bytes = base64::decode(public_key_b64).unwrap().to_vec();
+      dpk = DeterministicPublicKey::from(*array_ref![
+        public_key_bytes,
+        0,
+        DETERMINISTIC_PUBLIC_KEY_COMPRESSED_SIZE
+      ]);
+    },
+    None => { handle_err!("Property not set: 'public_key'"); }
+  }
+
+  // convert deterministic public key to compressed BBS public key
+  let pk;
+  match dpk.to_public_key(message_count as usize) {
+    Ok(p) => pk = p,
+    Err(_) => { handle_err!("Failed to convert to BBS public key"); },
+  }
+  if pk.validate().is_err() {
+    handle_err!("Failed to validate public key");
+  }
+
+  let pk_bytes = pk.to_bytes_compressed_form();
+  
+  context_json["public_key"] = Value::String(base64::encode(pk_bytes.as_slice()));
+  
+  rust_bbs_blind_signature_commitment(context_json)
+}
+
+#[allow(dead_code)]
 pub fn rust_bbs_verify_blind_signature_proof(
   context_json: Value
 ) -> Result<String, BBSError> {
@@ -883,6 +1018,55 @@ pub fn rust_bbs_verify_blind_signature_proof(
     Ok(json_string) => Ok(json_string),
     Err(_) => { handle_err!("Failed to stringify Blind Commitment Verification"); },
   }
+}
+
+#[allow(dead_code)]
+pub fn rust_bls_verify_blind_signature_proof(
+  mut context_json: Value
+) -> Result<String, BBSError> {
+  // get `known_message_count` value as integer
+  let known_message_count = match context_json["known_message_count"].as_i64() {
+    Some(known_message_count) => known_message_count,
+    None => { handle_err!("Property not set: 'known_message_count'"); }
+  };
+
+  // get `blinded` values as array
+  let blinded_array = match context_json["blinded"].as_array() {
+    Some(blinded) => blinded,
+    None => { handle_err!("Property not set: 'blinded'"); }
+  };
+
+  let message_count = blinded_array.len() as i64 + known_message_count;
+  
+  // convert 'public_key' base64 string to `DeterministicPublicKey` instance
+  let dpk;
+  match context_json["public_key"].as_str() {
+    Some(public_key_b64) => {
+      let public_key_bytes = base64::decode(public_key_b64).unwrap().to_vec();
+      dpk = DeterministicPublicKey::from(*array_ref![
+        public_key_bytes,
+        0,
+        DETERMINISTIC_PUBLIC_KEY_COMPRESSED_SIZE
+      ]);
+    },
+    None => { handle_err!("Property not set: 'public_key'"); }
+  }
+
+  // convert deterministic public key to compressed BBS public key
+  let pk;
+  match dpk.to_public_key(message_count as usize) {
+    Ok(p) => pk = p,
+    Err(_) => { handle_err!("Failed to convert to BBS public key"); },
+  }
+  if pk.validate().is_err() {
+    handle_err!("Failed to validate public key");
+  }
+
+  let pk_bytes = pk.to_bytes_compressed_form();
+  
+  context_json["public_key"] = Value::String(base64::encode(pk_bytes.as_slice()));
+  
+  rust_bbs_verify_blind_signature_proof(context_json)
 }
 
 #[allow(dead_code)]
@@ -999,6 +1183,55 @@ pub fn rust_bbs_blind_sign(
 }
 
 #[allow(dead_code)]
+pub fn rust_bls_blind_sign(
+  mut context_json: Value
+) -> Result<String, BBSError> {
+  // get `blinded_message_count` value as integer
+  let blinded_message_count = match context_json["blinded_message_count"].as_i64() {
+    Some(blinded_message_count) => blinded_message_count,
+    None => { handle_err!("Property not set: 'blinded_message_count'"); }
+  };
+
+  // get `messages` values as array
+  let messages_array = match context_json["messages"].as_array() {
+    Some(messages) => messages,
+    None => { handle_err!("Property not set: 'messages'"); }
+  };
+
+  let message_count = messages_array.len() as i64 + blinded_message_count;
+  
+  // convert 'public_key' base64 string to `DeterministicPublicKey` instance
+  let dpk;
+  match context_json["public_key"].as_str() {
+    Some(public_key_b64) => {
+      let public_key_bytes = base64::decode(public_key_b64).unwrap().to_vec();
+      dpk = DeterministicPublicKey::from(*array_ref![
+        public_key_bytes,
+        0,
+        DETERMINISTIC_PUBLIC_KEY_COMPRESSED_SIZE
+      ]);
+    },
+    None => { handle_err!("Property not set: 'public_key'"); }
+  }
+
+  // convert deterministic public key to compressed BBS public key
+  let pk;
+  match dpk.to_public_key(message_count as usize) {
+    Ok(p) => pk = p,
+    Err(_) => { handle_err!("Failed to convert to BBS public key"); },
+  }
+  if pk.validate().is_err() {
+    handle_err!("Failed to validate public key");
+  }
+
+  let pk_bytes = pk.to_bytes_compressed_form();
+  
+  context_json["public_key"] = Value::String(base64::encode(pk_bytes.as_slice()));
+  
+  rust_bbs_blind_sign(context_json)
+}
+
+#[allow(dead_code)]
 pub fn rust_bbs_unblind_signature(
   context_json: Value
 ) -> Result<String, BBSError> {
@@ -1100,6 +1333,49 @@ pub fn rust_bbs_verify(
     Ok(json_string) => Ok(json_string),
     Err(_) => { handle_err!("Failed to stringify Signature verification"); },
   }
+}
+
+#[allow(dead_code)]
+pub fn rust_bls_verify(
+  mut context_json: Value
+) -> Result<String, BBSError> {
+  // get `messages` values as array
+  let messages_array = match context_json["messages"].as_array() {
+    Some(messages) => messages,
+    None => { handle_err!("Property not set: 'messages'"); }
+  };
+
+  let message_count = messages_array.len() as i64;
+  
+  // convert 'public_key' base64 string to `DeterministicPublicKey` instance
+  let dpk;
+  match context_json["public_key"].as_str() {
+    Some(public_key_b64) => {
+      let public_key_bytes = base64::decode(public_key_b64).unwrap().to_vec();
+      dpk = DeterministicPublicKey::from(*array_ref![
+        public_key_bytes,
+        0,
+        DETERMINISTIC_PUBLIC_KEY_COMPRESSED_SIZE
+      ]);
+    },
+    None => { handle_err!("Property not set: 'public_key'"); }
+  }
+
+  // convert deterministic public key to compressed BBS public key
+  let pk;
+  match dpk.to_public_key(message_count as usize) {
+    Ok(p) => pk = p,
+    Err(_) => { handle_err!("Failed to convert to BBS public key"); },
+  }
+  if pk.validate().is_err() {
+    handle_err!("Failed to validate public key");
+  }
+
+  let pk_bytes = pk.to_bytes_compressed_form();
+  
+  context_json["public_key"] = Value::String(base64::encode(pk_bytes.as_slice()));
+  
+  rust_bbs_verify(context_json)
 }
 
 /// Expects `revealed` to be sorted

@@ -1,16 +1,22 @@
 import {
   generateBls12381G2KeyPair,
   BbsBlindSignContextRequest,
+  BlsBlindSignContextRequest,
   commitmentForBlindSignRequest,
+  blsCommitmentForBlindSignRequest,
   BbsBlindSignRequest,
+  BlsBlindSignRequest,
   blindSign,
+  blsBlindSign,
   unblindSignature,
   BbsKeyPair,
   bls12381toBbs,
   BBS_SIGNATURE_LENGTH,
   BlsKeyPair,
   BbsVerifyRequest,
+  BlsVerifyRequest,
   verify,
+  blsVerify,
   createProof,
   verifyProof
 } from "../../src";
@@ -121,6 +127,101 @@ describe("bbsSignature", () => {
 
   });
 
+  describe('blsBlindSign', () => {
+
+    describe('should sign with blinded messages', () => {
+
+      it('where a single blinded message is to be signed', async () => {
+        const nonce = randomBytes(10);
+        const publicKey = blsKeyPair.publicKey;
+        const blinded = [ 0 ];
+        const request: BlsBlindSignContextRequest = {
+          blinded,
+          messages: [ stringToBytes("HiddenMessage1") ],
+          nonce,
+          publicKey,
+          knownMessageCount: 0
+        };
+  
+        const { commitment } = await blsCommitmentForBlindSignRequest(request);
+
+        const blindSignRequest: BlsBlindSignRequest = {
+          commitment,
+          publicKey,
+          secretKey: blsKeyPair.secretKey,
+          messages: [],
+          known: [],
+          blindedMessageCount: 1
+        };
+
+        const blindSignature = await blsBlindSign(blindSignRequest);
+
+        expect(blindSignature).toBeInstanceOf(Uint8Array);
+        expect(blindSignature.length).toBe(BBS_SIGNATURE_LENGTH);
+      });
+
+      it('where a single blinded and single unblinded messages are to be signed', async () => {
+        const nonce = randomBytes(10);
+        const publicKey = blsKeyPair.publicKey;
+        const blinded = [ 0 ];
+        const request: BlsBlindSignContextRequest = {
+          blinded,
+          messages: [ stringToBytes("HiddenMessage1") ],
+          nonce,
+          publicKey,
+          knownMessageCount: 1
+        };
+  
+        const { commitment } = await blsCommitmentForBlindSignRequest(request);
+
+        const blindSignRequest: BlsBlindSignRequest = {
+          commitment,
+          publicKey,
+          secretKey: blsKeyPair.secretKey,
+          messages: [ stringToBytes("Message1") ],
+          known: [ 1 ],
+          blindedMessageCount: 1
+        };
+
+        const blindSignature = await blsBlindSign(blindSignRequest);
+
+        expect(blindSignature).toBeInstanceOf(Uint8Array);
+        expect(blindSignature.length).toBe(BBS_SIGNATURE_LENGTH);
+      });
+
+      it('where multiple blinded and multiple unblinded messages are to be signed', async () => {
+        const nonce = randomBytes(10);
+        const publicKey = blsKeyPair.publicKey;
+        const blinded = [ 0, 1 ];
+        const request: BlsBlindSignContextRequest = {
+          blinded,
+          messages: [ stringToBytes("HiddenMessage1"), stringToBytes("HiddenMessage2") ],
+          nonce,
+          publicKey,
+          knownMessageCount: 2
+        };
+  
+        const { commitment } = await blsCommitmentForBlindSignRequest(request);
+
+        const blindSignRequest: BlsBlindSignRequest = {
+          commitment,
+          publicKey,
+          secretKey: blsKeyPair.secretKey,
+          messages: [ stringToBytes("Message1"), stringToBytes("Message2") ],
+          known: [ 2, 3 ],
+          blindedMessageCount: 2
+        };
+
+        const blindSignature = await blsBlindSign(blindSignRequest);
+
+        expect(blindSignature).toBeInstanceOf(Uint8Array);
+        expect(blindSignature.length).toBe(BBS_SIGNATURE_LENGTH);
+      });
+
+    })
+
+  });
+
   describe('unblindSignature', () => {
 
     describe('should unblind blinded signature', () => {
@@ -216,118 +317,242 @@ describe("bbsSignature", () => {
 
     describe('should verify unblinded signature', () => {
 
-      it('for signature of single blinded message', async () => {
-        const nonce = randomBytes(10);
-        const bbsKeyPair: BbsKeyPair = await bls12381toBbs({ keyPair: { publicKey: blsKeyPair.publicKey }, messageCount: 1 });
-        const publicKey = bbsKeyPair.publicKey;
-        const blinded = [ 0 ];
-        const blindedMessages = [ stringToBytes("HiddenMessage1") ];
+      describe('where BBS functions used', () => {
 
-        const request: BbsBlindSignContextRequest = {
-          blinded,
-          messages: blindedMessages,
-          nonce,
-          publicKey
-        };
-        const { commitment, blindingFactor } = await commitmentForBlindSignRequest(request);
+        it('for signature of single blinded message', async () => {
+          const nonce = randomBytes(10);
+          const bbsKeyPair: BbsKeyPair = await bls12381toBbs({ keyPair: { publicKey: blsKeyPair.publicKey }, messageCount: 1 });
+          const publicKey = bbsKeyPair.publicKey;
+          const blinded = [ 0 ];
+          const blindedMessages = [ stringToBytes("HiddenMessage1") ];
+  
+          const request: BbsBlindSignContextRequest = {
+            blinded,
+            messages: blindedMessages,
+            nonce,
+            publicKey
+          };
+          const { commitment, blindingFactor } = await commitmentForBlindSignRequest(request);
+  
+          const blindSignRequest: BbsBlindSignRequest = {
+            commitment,
+            publicKey,
+            secretKey: blsKeyPair.secretKey,
+            messages: [], // no visible messages
+            known: [] // no visible messages to expose
+          };
+          const blindSignature = await blindSign(blindSignRequest);
+  
+          const signature = await unblindSignature(blindSignature, blindingFactor);
+  
+          const verificationRequest: BbsVerifyRequest = {
+            publicKey,
+            signature,
+            messages: blindedMessages
+          }
+  
+          const { verified } = await verify(verificationRequest);
+  
+          expect(verified).toBe(true);
+        });
+  
+        it('for signature of single blinded and unblinded messages', async () => {
+          const nonce = randomBytes(10);
+          const bbsKeyPair: BbsKeyPair = await bls12381toBbs({ keyPair: { publicKey: blsKeyPair.publicKey }, messageCount: 2 });
+          const publicKey = bbsKeyPair.publicKey;
+          const blinded = [ 0 ];
+          const blindedMessages = [ stringToBytes("HiddenMessage1") ];
+          const unblindedMessages = [ stringToBytes("Message1") ];
+  
+          const request: BbsBlindSignContextRequest = {
+            blinded,
+            messages: blindedMessages,
+            nonce,
+            publicKey
+          };
+          const { commitment, blindingFactor } = await commitmentForBlindSignRequest(request);
+  
+          const blindSignRequest: BbsBlindSignRequest = {
+            commitment,
+            publicKey,
+            secretKey: blsKeyPair.secretKey,
+            messages: unblindedMessages,
+            known: [ 1 ]
+          };
+          const blindSignature = await blindSign(blindSignRequest);
+  
+          const signature = await unblindSignature(blindSignature, blindingFactor);
+  
+          const verificationRequest: BbsVerifyRequest = {
+            publicKey,
+            signature,
+            messages: [ ...blindedMessages, ...unblindedMessages ]
+          }
+  
+          const { verified } = await verify(verificationRequest);
+  
+          expect(verified).toBe(true);
+        });
+  
+        it('for signature of multiple blinded and unblinded messages', async () => {
+          const nonce = randomBytes(10);
+          const bbsKeyPair: BbsKeyPair = await bls12381toBbs({ keyPair: { publicKey: blsKeyPair.publicKey }, messageCount: 4 });
+          const publicKey = bbsKeyPair.publicKey;
+          const blinded = [ 0, 1 ];
+          const blindedMessages = [ stringToBytes("HiddenMessage1"), stringToBytes("HiddenMessage2") ];
+          const unblindedMessages = [ stringToBytes("Message1"), stringToBytes("Message2") ];
+  
+          const request: BbsBlindSignContextRequest = {
+            blinded,
+            messages: blindedMessages,
+            nonce,
+            publicKey
+          };
+          const { commitment, blindingFactor } = await commitmentForBlindSignRequest(request);
+  
+          const blindSignRequest: BbsBlindSignRequest = {
+            commitment,
+            publicKey,
+            secretKey: blsKeyPair.secretKey,
+            messages: unblindedMessages,
+            known: [ 2, 3 ]
+          };
+          const blindSignature = await blindSign(blindSignRequest);
+  
+          const signature = await unblindSignature(blindSignature, blindingFactor);
+  
+          const verificationRequest: BbsVerifyRequest = {
+            publicKey,
+            signature,
+            messages: [ ...blindedMessages, ...unblindedMessages ]
+          }
+  
+          const { verified } = await verify(verificationRequest);
+  
+          expect(verified).toBe(true);
+        });
 
-        const blindSignRequest: BbsBlindSignRequest = {
-          commitment,
-          publicKey,
-          secretKey: blsKeyPair.secretKey,
-          messages: [], // no visible messages
-          known: [] // no visible messages to expose
-        };
-        const blindSignature = await blindSign(blindSignRequest);
+      })
 
-        const signature = await unblindSignature(blindSignature, blindingFactor);
+      describe('where BLS functions used', () => {
 
-        const verificationRequest: BbsVerifyRequest = {
-          publicKey,
-          signature,
-          messages: blindedMessages
-        }
+        it('for signature of single blinded message', async () => {
+          const nonce = randomBytes(10);
+          const publicKey = blsKeyPair.publicKey;
+          const blinded = [ 0 ];
+          const blindedMessages = [ stringToBytes("HiddenMessage1") ];
+  
+          const request: BlsBlindSignContextRequest = {
+            blinded,
+            messages: blindedMessages,
+            nonce,
+            publicKey,
+            knownMessageCount: 0
+          };
+          const { commitment, blindingFactor } = await blsCommitmentForBlindSignRequest(request);
+  
+          const blindSignRequest: BlsBlindSignRequest = {
+            commitment,
+            publicKey,
+            secretKey: blsKeyPair.secretKey,
+            messages: [], // no visible messages
+            known: [], // no visible messages to expose
+            blindedMessageCount: 1
+          };
+          const blindSignature = await blsBlindSign(blindSignRequest);
+  
+          const signature = await unblindSignature(blindSignature, blindingFactor);
+  
+          const verificationRequest: BlsVerifyRequest = {
+            publicKey,
+            signature,
+            messages: blindedMessages
+          }
+  
+          const { verified } = await blsVerify(verificationRequest);
+  
+          expect(verified).toBe(true);
+        });
+  
+        it('for signature of single blinded and unblinded messages', async () => {
+          const nonce = randomBytes(10);
+          const publicKey = blsKeyPair.publicKey;
+          const blinded = [ 0 ];
+          const blindedMessages = [ stringToBytes("HiddenMessage1") ];
+          const unblindedMessages = [ stringToBytes("Message1") ];
+  
+          const request: BlsBlindSignContextRequest = {
+            blinded,
+            messages: blindedMessages,
+            nonce,
+            publicKey,
+            knownMessageCount: 1
+          };
+          const { commitment, blindingFactor } = await blsCommitmentForBlindSignRequest(request);
+  
+          const blindSignRequest: BlsBlindSignRequest = {
+            commitment,
+            publicKey,
+            secretKey: blsKeyPair.secretKey,
+            messages: unblindedMessages,
+            known: [ 1 ],
+            blindedMessageCount: 1
+          };
+          const blindSignature = await blsBlindSign(blindSignRequest);
+  
+          const signature = await unblindSignature(blindSignature, blindingFactor);
+  
+          const verificationRequest: BlsVerifyRequest = {
+            publicKey,
+            signature,
+            messages: [ ...blindedMessages, ...unblindedMessages ]
+          }
+  
+          const { verified } = await blsVerify(verificationRequest);
+  
+          expect(verified).toBe(true);
+        });
+  
+        it('for signature of multiple blinded and unblinded messages', async () => {
+          const nonce = randomBytes(10);
+          const publicKey = blsKeyPair.publicKey;
+          const blinded = [ 0, 1 ];
+          const blindedMessages = [ stringToBytes("HiddenMessage1"), stringToBytes("HiddenMessage2") ];
+          const unblindedMessages = [ stringToBytes("Message1"), stringToBytes("Message2") ];
+  
+          const request: BlsBlindSignContextRequest = {
+            blinded,
+            messages: blindedMessages,
+            nonce,
+            publicKey,
+            knownMessageCount: 2
+          };
+          const { commitment, blindingFactor } = await blsCommitmentForBlindSignRequest(request);
+  
+          const blindSignRequest: BlsBlindSignRequest = {
+            commitment,
+            publicKey,
+            secretKey: blsKeyPair.secretKey,
+            messages: unblindedMessages,
+            known: [ 2, 3 ],
+            blindedMessageCount: 2
+          };
+          const blindSignature = await blsBlindSign(blindSignRequest);
+  
+          const signature = await unblindSignature(blindSignature, blindingFactor);
+  
+          const verificationRequest: BlsVerifyRequest = {
+            publicKey,
+            signature,
+            messages: [ ...blindedMessages, ...unblindedMessages ]
+          }
+  
+          const { verified } = await blsVerify(verificationRequest);
+  
+          expect(verified).toBe(true);
+        });
 
-        const { verified } = await verify(verificationRequest);
-
-        expect(verified).toBe(true);
-      });
-
-      it('for signature of single blinded and unblinded messages', async () => {
-        const nonce = randomBytes(10);
-        const bbsKeyPair: BbsKeyPair = await bls12381toBbs({ keyPair: { publicKey: blsKeyPair.publicKey }, messageCount: 2 });
-        const publicKey = bbsKeyPair.publicKey;
-        const blinded = [ 0 ];
-        const blindedMessages = [ stringToBytes("HiddenMessage1") ];
-        const unblindedMessages = [ stringToBytes("Message1") ];
-
-        const request: BbsBlindSignContextRequest = {
-          blinded,
-          messages: blindedMessages,
-          nonce,
-          publicKey
-        };
-        const { commitment, blindingFactor } = await commitmentForBlindSignRequest(request);
-
-        const blindSignRequest: BbsBlindSignRequest = {
-          commitment,
-          publicKey,
-          secretKey: blsKeyPair.secretKey,
-          messages: unblindedMessages,
-          known: [ 1 ]
-        };
-        const blindSignature = await blindSign(blindSignRequest);
-
-        const signature = await unblindSignature(blindSignature, blindingFactor);
-
-        const verificationRequest: BbsVerifyRequest = {
-          publicKey,
-          signature,
-          messages: [ ...blindedMessages, ...unblindedMessages ]
-        }
-
-        const { verified } = await verify(verificationRequest);
-
-        expect(verified).toBe(true);
-      });
-
-      it('for signature of multiple blinded and unblinded messages', async () => {
-        const nonce = randomBytes(10);
-        const bbsKeyPair: BbsKeyPair = await bls12381toBbs({ keyPair: { publicKey: blsKeyPair.publicKey }, messageCount: 4 });
-        const publicKey = bbsKeyPair.publicKey;
-        const blinded = [ 0, 1 ];
-        const blindedMessages = [ stringToBytes("HiddenMessage1"), stringToBytes("HiddenMessage2") ];
-        const unblindedMessages = [ stringToBytes("Message1"), stringToBytes("Message2") ];
-
-        const request: BbsBlindSignContextRequest = {
-          blinded,
-          messages: blindedMessages,
-          nonce,
-          publicKey
-        };
-        const { commitment, blindingFactor } = await commitmentForBlindSignRequest(request);
-
-        const blindSignRequest: BbsBlindSignRequest = {
-          commitment,
-          publicKey,
-          secretKey: blsKeyPair.secretKey,
-          messages: unblindedMessages,
-          known: [ 2, 3 ]
-        };
-        const blindSignature = await blindSign(blindSignRequest);
-
-        const signature = await unblindSignature(blindSignature, blindingFactor);
-
-        const verificationRequest: BbsVerifyRequest = {
-          publicKey,
-          signature,
-          messages: [ ...blindedMessages, ...unblindedMessages ]
-        }
-
-        const { verified } = await verify(verificationRequest);
-
-        expect(verified).toBe(true);
-      });
+      })
 
     });
 

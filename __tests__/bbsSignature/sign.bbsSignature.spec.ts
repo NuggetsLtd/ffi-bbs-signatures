@@ -128,7 +128,7 @@ describe("bbsSignature", () => {
         keyPair: blsKeyPair,
         messages: [],
       };
-      await expect(blsSign(request)).rejects.toThrowError("Failed to convert key");
+      await expect(blsSign(request)).rejects.toThrowError("Failed to sign");
     });
   });
 });
