@@ -12,19 +12,31 @@
  */
 
 /**
- * A request verify a BBS signature for a set of messages
+ * A request to create a BBS signature that features blinded/commited messages
  */
-export interface BlsBbsVerifyRequest {
+export interface BlsBlindSignRequest {
   /**
-   * BLS12-381 public key of the signer of the signature
+   * The resulting commitment of the blinded messages to sign
+   */
+  readonly commitment: Uint8Array;
+  /**
+   * The public key of the holder
    */
   readonly publicKey: Uint8Array;
   /**
-   * Raw signature value
+   * The secret key of the signer
    */
-  readonly signature: Uint8Array;
+  readonly secretKey: Uint8Array;
   /**
-   * Messages that were signed to produce the signature
+   * The known messages to sign
    */
   readonly messages: readonly Uint8Array[];
+  /**
+   * The zero based indices of which messages are known
+   */
+  readonly known: readonly number[];
+  /**
+   * Number of blinded messages committed to
+   */
+  readonly blindedMessageCount: number;
 }

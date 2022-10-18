@@ -13,11 +13,14 @@
 
 export { BbsBlindSignContext } from "./BbsBlindSignContext";
 export { BbsBlindSignContextRequest } from "./BbsBlindSignContextRequest";
+export { BlsBlindSignContextRequest } from "./BlsBlindSignContextRequest";
 export { BbsBlindSignRequest } from "./BbsBlindSignRequest";
+export { BlsBlindSignRequest } from "./BlsBlindSignRequest";
 export { BbsCreateProofRequest } from "./BbsCreateProofRequest";
 export { BbsKeyPair } from "./BbsKeyPair";
 export { BbsSignRequest } from "./BbsSignRequest";
 export { BbsVerifyBlindSignContextRequest } from "./BbsVerifyBlindSignContextRequest";
+export { BlsVerifyBlindSignContextRequest } from "./BlsVerifyBlindSignContextRequest";
 export { BbsVerifyProofRequest } from "./BbsVerifyProofRequest";
 export { BbsVerifyRequest } from "./BbsVerifyRequest";
 export {
@@ -30,5 +33,5 @@ export {
 } from "./BlsKeyPair";
 export { Bls12381ToBbsRequest } from "./Bls12381ToBbsRequest";
 export { BlsBbsSignRequest } from "./BlsBbsSignRequest";
-export { BlsBbsVerifyRequest } from "./BlsBbsVerifyRequest";
+export { BlsVerifyRequest } from "./BlsVerifyRequest";
 export { BbsVerifyResult } from "./BbsVerifyResult";
