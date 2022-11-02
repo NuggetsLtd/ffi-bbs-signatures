@@ -46,6 +46,7 @@
     "build": "yarn build:neon && yarn build:ts",
     "build:env": "./scripts/build.sh",
     "build:neon": "yarn build:env NODE",
+    "build:neon:linux": "./scripts/linux_docker_build.sh",
     "build:ios": "yarn build:env IOS",
     "build:android": "yarn build:env ANDROID",
     "build:ts": "tsc --pretty",
