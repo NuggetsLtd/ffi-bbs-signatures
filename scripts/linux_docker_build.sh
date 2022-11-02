@@ -1,4 +1,5 @@
 #!/bin/bash
+
 OS=$(uname -o)
 
 echo -e "\n 🏗️  Running Node v'$NODE_VERSION' build for '$OS'"
