@@ -7,7 +7,7 @@ version: 2.1
 parameters:
   cache_version:
     type: string
-    default: "v1"
+    default: "v2"
   aws_ecr_host:
     type: string
     default: "454245708275.dkr.ecr.eu-west-1.amazonaws.com"
@@ -136,12 +136,12 @@ jobs:
             fi
       - node/install:
           install-yarn: true
-          node-version: "16"
+          node-version: "18"
       - rust/install
       - run:
           name: Install NPM Packages
           command: |
-            echo "//registry.npmjs.org/:_authToken=$PRIVATE_NPM_TOKEN" > ~/.npmrc
+            echo "//registry.npmjs.org/:_authToken=$PRIVATE_NPM_TOKEN_RUST_PUBLISH" > ~/.npmrc
             yarn install --frozen-lockfile --production="false" --force
       - run:
           name: Build Typescript & Rust Binary
@@ -211,7 +211,15 @@ workflows:
           name: "<< pipeline.parameters.project_name >>: << matrix.executor >>"
           matrix:
             parameters:
-              executor: [node-14-linux-libc, node-14-linux-musl, node-16-linux-libc, node-16-linux-musl]
+              executor:
+                [
+                  node-14-linux-libc,
+                  node-14-linux-musl,
+                  node-16-linux-libc,
+                  node-16-linux-musl,
+                  node-18-linux-libc,
+                  node-18-linux-musl,
+                ]
       - test-mac:
           context: nuggets
           filters:
@@ -221,7 +229,7 @@ workflows:
           name: "<< pipeline.parameters.project_name >>: node-<< matrix.node-version >>-macos"
           matrix:
             parameters:
-              node-version: ["14", "16"]
+              node-version: ["14", "16", "18"]
 
   # build & publish binaries
   publish:
@@ -244,7 +252,15 @@ workflows:
           name: "<< pipeline.parameters.project_name >> Publish: << matrix.executor >>"
           matrix:
             parameters:
-              executor: [node-14-linux-libc, node-14-linux-musl, node-16-linux-libc, node-16-linux-musl]
+              executor:
+                [
+                  node-14-linux-libc,
+                  node-14-linux-musl,
+                  node-16-linux-libc,
+                  node-16-linux-musl,
+                  node-18-linux-libc,
+                  node-18-linux-musl,
+                ]
       - publish-mac:
           context: nuggets
           requires:
@@ -256,4 +272,4 @@ workflows:
           name: "<< pipeline.parameters.project_name >> Publish: node-<< matrix.node-version >>-macos-undefined"
           matrix:
             parameters:
-              node-version: ["14", "16"]
+              node-version: ["14", "16", "18"]
