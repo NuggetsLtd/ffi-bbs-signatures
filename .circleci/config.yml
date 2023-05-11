@@ -62,6 +62,12 @@ executors:
   node-16-linux-musl:
     docker:
       - image: << pipeline.parameters.aws_ecr_host >>/rust-node-16-musl-main:latest
+  node-18-linux-libc:
+    docker:
+      - image: << pipeline.parameters.aws_ecr_host >>/rust-node-18-libc-main:latest
+  node-18-linux-musl:
+    docker:
+      - image: << pipeline.parameters.aws_ecr_host >>/rust-node-18-musl-main:latest
   mac:
     macos:
       xcode: "14.0.0"
