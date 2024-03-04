@@ -288,7 +288,17 @@ workflows:
                   node-20-linux-libc,
                   node-20-linux-musl,
                 ]
-      - test-mac:
+      - test-mac-intel:
+          context: nuggets
+          filters:
+            branches:
+              ignore:
+                - master
+          name: "<< pipeline.parameters.project_name >>: node-<< matrix.node-version >>-macos"
+          matrix:
+            parameters:
+              node-version: ["16", "18", "20"]
+      - test-mac-m1:
           context: nuggets
           filters:
             branches:
