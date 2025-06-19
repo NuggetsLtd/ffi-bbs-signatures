@@ -1,3 +1,7 @@
+## [1.3.7](https://github.com/NuggetsLtd/ffi-bbs-signatures/compare/v1.3.6...v1.3.7) (2025-06-19)
+
+
+
 ## [1.3.6](https://github.com/NuggetsLtd/ffi-bbs-signatures/compare/v1.3.4...v1.3.6) (2024-04-19)
 
 
