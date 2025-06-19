@@ -15,6 +15,9 @@ parameters:
   project_name:
     type: string
     default: "Node FFI BBS+ Signatures"
+  rust_version:
+    type: string
+    default: "1.81.0"
 
 
 #+-----------------------------------------------------------------------------+
@@ -119,7 +122,8 @@ jobs:
       - node/install:
           install-yarn: true
           node-version: << parameters.node-version >>
-      - rust/install
+      - rust/install:
+          version: << pipeline.parameters.rust_version >>
       - run:
           name: Install NPM Packages
           command: |
@@ -148,8 +152,9 @@ jobs:
             fi
       - node/install:
           install-yarn: true
-          node-version: "18"
-      - rust/install
+          node-version: "20"
+      - rust/install:
+          version: << pipeline.parameters.rust_version >>
       - run:
           name: Install NPM Packages
           command: |
@@ -191,7 +196,8 @@ jobs:
       - node/install:
           install-yarn: true
           node-version: << parameters.node-version >>
-      - rust/install
+      - rust/install:
+          version: << pipeline.parameters.rust_version >>
       - run:
           name: Install NPM Packages
           command: |
