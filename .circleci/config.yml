@@ -54,12 +54,6 @@ commands:
 #+-----------------------------------------------------------------------------+
 
 executors:
-  node-16-linux-libc:
-    docker:
-      - image: << pipeline.parameters.aws_ecr_host >>/rust-node-16-libc-main:latest
-  node-16-linux-musl:
-    docker:
-      - image: << pipeline.parameters.aws_ecr_host >>/rust-node-16-musl-main:latest
   node-18-linux-libc:
     docker:
       - image: << pipeline.parameters.aws_ecr_host >>/rust-node-18-libc-main:latest
@@ -72,15 +66,12 @@ executors:
   node-20-linux-musl:
     docker:
       - image: << pipeline.parameters.aws_ecr_host >>/rust-node-20-musl-main:latest
-  mac-intel:
-    macos:
-      xcode: "15.1" # latest version supported by CircleCI
-    resource_class: macos.x86.medium.gen2
-    # use a --login shell so our "set Ruby version" command gets picked up for later steps
-    shell: /bin/bash --login -o pipefail
-    environment:
-      LC_ALL: en_US.UTF-8
-      LANG: en_US.UTF-8
+  node-22-linux-libc:
+    docker:
+      - image: << pipeline.parameters.aws_ecr_host >>/rust-node-22-libc-main:latest
+  node-22-linux-musl:
+    docker:
+      - image: << pipeline.parameters.aws_ecr_host >>/rust-node-22-musl-main:latest
   mac-m1:
     macos:
       xcode: "15.2"
@@ -117,29 +108,6 @@ jobs:
           name: Test
           command: yarn test --coverage
   # test & lint jobs for macos
-  test-mac-intel:
-    description: << parameters.node-version >>
-    parameters:
-      node-version:
-        type: string
-    executor: mac-intel
-    steps:
-      - checkout
-      - node/install:
-          install-yarn: true
-          node-version: << parameters.node-version >>
-      - rust/install
-      - run:
-          name: Install NPM Packages
-          command: |
-            echo "//registry.npmjs.org/:_authToken=$PRIVATE_NPM_TOKEN" > ~/.npmrc
-            yarn install --frozen-lockfile --production="false" --force
-      - run:
-          name: Build Typescript & Rust Binary
-          command: yarn build
-      - run:
-          name: Test
-          command: yarn test
   test-mac-m1:
     description: << parameters.node-version >>
     parameters:
@@ -212,29 +180,6 @@ jobs:
           command: yarn publish:binary
 
   # build & publish for macos
-  publish-mac-intel:
-    description: << parameters.node-version >>
-    parameters:
-      node-version:
-        type: string
-    executor: mac-intel
-    steps:
-      - checkout
-      - node/install:
-          install-yarn: true
-          node-version: << parameters.node-version >>
-      - rust/install
-      - run:
-          name: Install NPM Packages
-          command: |
-            echo "//registry.npmjs.org/:_authToken=$PRIVATE_NPM_TOKEN" > ~/.npmrc
-            yarn install --frozen-lockfile --production="false" --force
-      - run:
-          name: Build Typescript & Rust Binary
-          command: yarn build
-      - run:
-          name: Publish Rust Binary
-          command: yarn publish:binary
   publish-mac-m1:
     description: << parameters.node-version >>
     parameters:
@@ -281,23 +226,13 @@ workflows:
             parameters:
               executor:
                 [
-                  node-16-linux-libc,
-                  node-16-linux-musl,
                   node-18-linux-libc,
                   node-18-linux-musl,
                   node-20-linux-libc,
                   node-20-linux-musl,
+                  node-22-linux-libc,
+                  node-22-linux-musl,
                 ]
-      - test-mac-intel:
-          context: nuggets
-          filters:
-            branches:
-              ignore:
-                - master
-          name: "<< pipeline.parameters.project_name >>: node-<< matrix.node-version >>-macos"
-          matrix:
-            parameters:
-              node-version: ["16", "18", "20"]
       - test-mac-m1:
           context: nuggets
           filters:
@@ -307,7 +242,7 @@ workflows:
           name: "<< pipeline.parameters.project_name >>: node-<< matrix.node-version >>-macos"
           matrix:
             parameters:
-              node-version: ["16", "18", "20"]
+              node-version: ["18", "20", "22"]
 
   # build & publish binaries
   publish:
@@ -332,25 +267,13 @@ workflows:
             parameters:
               executor:
                 [
-                  node-16-linux-libc,
-                  node-16-linux-musl,
                   node-18-linux-libc,
                   node-18-linux-musl,
                   node-20-linux-libc,
                   node-20-linux-musl,
+                  node-22-linux-libc,
+                  node-22-linux-musl,
                 ]
-      - publish-mac-intel:
-          context: nuggets
-          requires:
-            - "<< pipeline.parameters.project_name >> Publish: NPM Package"
-          filters:
-            branches:
-              only:
-                - master
-          name: "<< pipeline.parameters.project_name >> Publish: node-<< matrix.node-version >>-macos-intel"
-          matrix:
-            parameters:
-              node-version: ["16", "18", "20"]
       - publish-mac-m1:
           context: nuggets
           requires:
@@ -362,4 +285,4 @@ workflows:
           name: "<< pipeline.parameters.project_name >> Publish: node-<< matrix.node-version >>-macos-m1"
           matrix:
             parameters:
-              node-version: ["16", "18", "20"]
+              node-version: ["18", "20", "22"]
