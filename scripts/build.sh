@@ -1,4 +1,4 @@
-set -e
+set -xe
 
 PLATFORM=$1
 OUTPUT_LOCATION=./out
