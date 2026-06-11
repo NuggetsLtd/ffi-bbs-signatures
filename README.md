@@ -1,5 +1,17 @@
 [![Nuggets](./docs/assets/nuggets-logo.svg)](https://github.com/NuggetsLtd)
 
+# Archived repository
+
+This repository has been archived.
+
+The BBS FFI sources have been migrated into the Nuggets monorepo:
+
+- https://github.com/NuggetsLtd/nuggets
+
+Current development now lives in the monorepo `ffi-bbs-signatures`,
+`ffi-bbs-native`, `ffi-bbs-c`, and BBS/VC packages. This repository is retained
+for historical reference only.
+
 # Node BBS+ Signatures FFI (Foreign Function Interface)
 
 ![npm-version](https://badgen.net/npm/v/@nuggetslife/ffi-bbs-signatures)
